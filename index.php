@@ -16,6 +16,10 @@
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
+    h2 {
+        text-align: center;
+    }
+
     input,
     textarea {
         width: 100%;
@@ -54,8 +58,9 @@
 
 <body>
 
-    <h2>Bulk WhatsApp Sender via Excel</h2>
-
+    <h2 class="text-center">Bulk WhatsApp Sender </h2>
+    <hr />
+    <br />
     <label>Upload Excel File (.xlsx):</label>
     <input type="file" id="excelFile" accept=".xlsx,.xls" /><br />
 
@@ -69,9 +74,23 @@
     <button onclick="downloadLog()">Download Log</button>
 
     <div id="status"></div>
-
+    <h1>WhatsApp Login</h1>
+    <p>Scan this QR code with your WhatsApp to log in:</p>
+    <div id="qrCode">Loading QR...</div>
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script>
+    async function fetchQR() {
+        const res = await fetch("http://localhost:3000/get-qr");
+        const data = await res.json();
+        if (data.qr) {
+            document.getElementById("qrCode").innerHTML = `<img id="qrImg" src="${data.qr}">`;
+        } else {
+            document.getElementById("qrCode").innerHTML = `<b>✅ Logged in to WhatsApp!</b>`;
+            clearInterval(qrInterval);
+        }
+    }
+    const qrInterval = setInterval(fetchQR, 3000);
+    fetchQR();
     async function sendBulkExcel() {
         const file = document.getElementById('excelFile').files[0];
         const delaySec = parseInt(document.getElementById('delay').value);
@@ -103,9 +122,9 @@
             statusDiv.textContent += `Found ${rows.length} rows.\n`;
 
             for (let row of rows) {
-                // Handle multiple possible phone column names
+
                 let phone = row.Phone || row.phone || row.Mobile || row.mobile || "";
-                phone = phone.toString().replace(/\D/g, ""); // remove non-digit chars
+                phone = phone.toString().replace(/\D/g, "");
                 if (!phone) {
                     statusDiv.textContent += "❌ Missing phone number. Skipping row.\n";
                     continue;
