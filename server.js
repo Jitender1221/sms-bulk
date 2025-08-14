@@ -36,7 +36,6 @@ const upload = multer({ storage });
 
 // WhatsApp Client
 let qrImageBase64 = null;
-let isReady = false;
 
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
@@ -54,9 +53,14 @@ const client = new Client({
   },
 });
 
+// Function to check if client is ready
+function checkClientReady() {
+  return client && client.info && client.info.wid; // wid exists when logged in
+}
+
 // QR Event
 client.on("qr", async (qr) => {
-  if (!isReady) { // only generate QR if not already logged in
+  if (!checkClientReady()) { // only set QR if not logged in
     console.log("🔁 Scan QR to login");
     qrImageBase64 = await qrcode.toDataURL(qr);
   }
@@ -66,7 +70,6 @@ client.on("qr", async (qr) => {
 client.on("ready", () => {
   console.log("✅ WhatsApp client ready!");
   qrImageBase64 = null; // clear QR
-  isReady = true;
 });
 
 // Auth Failure
@@ -75,7 +78,7 @@ client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
 // Disconnected
 client.on("disconnected", (reason) => {
   console.warn("⚠️ Disconnected:", reason);
-  isReady = false;
+  qrImageBase64 = null;
   setTimeout(() => client.initialize(), 5000);
 });
 
@@ -83,8 +86,7 @@ client.initialize();
 
 // === API to get QR code ===
 app.get("/get-qr", (req, res) => {
-  if (isReady) {
-    // If already logged in, no QR
+  if (checkClientReady()) {
     return res.json({ qr: null, ready: true });
   }
   res.json({ qr: qrImageBase64, ready: false });
@@ -147,7 +149,7 @@ async function sendMessageOrMedia(phone, message, media) {
 
 // Single send
 app.post("/send-message", async (req, res) => {
-  if (!isReady)
+  if (!checkClientReady())
     return res.status(503).json({ error: "WhatsApp client not ready" });
 
   try {
@@ -168,7 +170,7 @@ app.post("/send-message", async (req, res) => {
 
 // Bulk send
 app.post("/send-messages", async (req, res) => {
-  if (!isReady)
+  if (!checkClientReady())
     return res.status(503).json({ error: "WhatsApp client not ready" });
 
   const messages = req.body.messages;
