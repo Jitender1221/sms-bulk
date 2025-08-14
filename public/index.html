@@ -155,7 +155,7 @@
           <div>
             <label>Country Code</label>
             <input type="text" id="countryCode" value="91" />
-            <div class="hint">No “+”. Example: <span class="kbd">91</span> for India.</div>
+            <div class="hint">No "+". Example: <span class="kbd">91</span> for India.</div>
           </div>
         </div>
 
@@ -196,15 +196,13 @@
 
     <div class="footer">
       Tip: Use placeholders <span class="kbd">#StudentName#</span>, <span class="kbd">#AIR#</span>, <span class="kbd">#CollegeName#</span> in your message.<br/>
-     
     </div>
     <br/>
   </div>
 
-
   <script>
     // Use same-origin by default (safer for Render)
-    const API_BASE = "https://sms-bulk.onrender.com";
+    const API_BASE = window.location.origin; // Use current origin instead of hardcoded URL
 
     const els = {
       qrWrap: document.getElementById('qrWrap'),
@@ -223,36 +221,87 @@
       downloadTemplate: document.getElementById('downloadTemplate'),
     };
 
-    // --- QR polling ---
+    // --- Connection status ---
+    let isConnected = false;
     let qrTimer = null;
+    let authCheckTimer = null;
+
+    // --- QR polling ---
     async function fetchQR() {
       try {
         const res = await fetch(`${API_BASE}/get-qr`, { cache: "no-store" });
         const data = await res.json();
-        if (data.qr) {
+        
+        if (data.status === "already_authenticated") {
+          handleAuthenticated();
+        } else if (data.qr) {
           els.qrCode.innerHTML = `<img src="${data.qr}" alt="WhatsApp QR Code">`;
           els.connChip.textContent = "Scan to login";
+          isConnected = false;
         } else {
-          els.qrCode.innerHTML = `<b class="ok">✅ Logged in to WhatsApp</b>`;
-          els.connChip.textContent = "Ready";
+          els.qrCode.textContent = "Waiting for QR code...";
+          els.connChip.textContent = "Connecting...";
+          isConnected = false;
         }
       } catch (e) {
+        console.error("QR fetch error:", e);
         els.qrCode.textContent = "❌ Error fetching QR";
         els.connChip.textContent = "Error";
+        isConnected = false;
       }
+    }
+
+    // --- Authentication check ---
+    async function checkAuthStatus() {
+      try {
+        const res = await fetch(`${API_BASE}/check-auth`, { cache: "no-store" });
+        const data = await res.json();
+        
+        if (data.isReady && !isConnected) {
+          handleAuthenticated();
+        } else if (!data.isReady && isConnected) {
+          handleDisconnected();
+        }
+      } catch (e) {
+        console.error("Auth check error:", e);
+      }
+    }
+
+    function handleAuthenticated() {
+      els.qrCode.innerHTML = `<b class="ok">✅ Logged in to WhatsApp</b>`;
+      els.connChip.textContent = "Ready";
+      isConnected = true;
+      stopQR();
+    }
+
+    function handleDisconnected() {
+      els.qrCode.innerHTML = `<div class="muted">Loading QR…</div>`;
+      els.connChip.textContent = "Connecting...";
+      isConnected = false;
+      startQR();
     }
 
     function startQR() {
       stopQR();
       fetchQR();
       qrTimer = setInterval(fetchQR, 3000);
+      authCheckTimer = setInterval(checkAuthStatus, 5000);
     }
+
     function stopQR() {
       if (qrTimer) clearInterval(qrTimer);
+      if (authCheckTimer) clearInterval(authCheckTimer);
       qrTimer = null;
+      authCheckTimer = null;
     }
-    els.refreshQR.addEventListener('click', startQR);
+
+    els.refreshQR.addEventListener('click', () => {
+      if (!isConnected) startQR();
+    });
+
     els.stopQR.addEventListener('click', stopQR);
+
+    // Initialize
     startQR();
 
     // --- Template download (example Excel as CSV, easy to open in Excel) ---
@@ -261,8 +310,11 @@
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url; a.download = "whatsapp_template.csv";
-      document.body.appendChild(a); a.click(); a.remove();
+      a.href = url; 
+      a.download = "whatsapp_template.csv";
+      document.body.appendChild(a); 
+      a.click(); 
+      a.remove();
       URL.revokeObjectURL(url);
     });
 
@@ -271,10 +323,12 @@
       els.status.textContent += line + "\n";
       els.status.scrollTop = els.status.scrollHeight;
     }
+
     function setProgress(done, total) {
       const pct = total ? Math.round((done / total) * 100) : 0;
       els.bar.style.width = pct + "%";
     }
+
     function normalizePhone(raw, cc) {
       let p = String(raw ?? "").replace(/\D/g, "");
       if (!p) return "";
@@ -289,6 +343,11 @@
     });
 
     async function sendBulkExcel() {
+      if (!isConnected) {
+        alert("Please connect to WhatsApp first by scanning the QR code");
+        return;
+      }
+
       const file = els.excelFile.files[0];
       const delaySec = Math.max(1, parseInt(els.delay.value || "3", 10));
       const cc = els.countryCode.value.replace(/\D/g, "") || "91";
@@ -297,8 +356,15 @@
       els.status.textContent = "";
       setProgress(0, 1);
 
-      if (!file) return alert("Please select an Excel file");
-      if (!rawMessage) return alert("Please type your message");
+      if (!file) {
+        alert("Please select an Excel file");
+        return;
+      }
+      
+      if (!rawMessage) {
+        alert("Please type your message");
+        return;
+      }
 
       try {
         // Read Excel
@@ -307,10 +373,18 @@
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet);
 
-        if (!rows.length) return alert("Excel file is empty!");
+        if (!rows.length) {
+          alert("Excel file is empty!");
+          return;
+        }
 
         log(`Found ${rows.length} rows.\n`);
         let sent = 0;
+        let failed = 0;
+
+        // Disable send button during sending
+        els.sendBtn.disabled = true;
+        els.sendBtn.innerHTML = '<span>⏳</span> Sending...';
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
@@ -322,6 +396,7 @@
           if (!phone) {
             log(`Row ${i+1}: ❌ Missing phone number. Skipping.`);
             setProgress(i+1, rows.length);
+            failed++;
             continue;
           }
 
@@ -339,6 +414,7 @@
 
             if (res.status === 503) {
               log(`Row ${i+1} (${phone}): ⏳ Client not ready. Please scan QR and try again.`);
+              failed++;
               break;
             }
 
@@ -349,20 +425,36 @@
             } else {
               const reason = data.message || data.error || "Failed";
               log(`Row ${i+1} (${phone}): ❌ ${reason}`);
+              failed++;
             }
           } catch (err) {
             log(`Row ${i+1} (${phone}): ❌ Network error`);
+            failed++;
           }
 
           setProgress(i+1, rows.length);
           await new Promise(r => setTimeout(r, delaySec * 1000));
         }
 
-        log(`\nDone. Sent: ${sent}/${rows.length}`);
+        log(`\nDone. Sent: ${sent}/${rows.length}, Failed: ${failed}`);
       } catch (err) {
         alert("Error reading Excel file: " + err.message);
+        console.error(err);
+      } finally {
+        // Re-enable send button
+        els.sendBtn.disabled = false;
+        els.sendBtn.innerHTML = '<span>📤</span> Send Messages';
       }
     }
+
+    // Handle page visibility changes
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        stopQR();
+      } else if (!isConnected) {
+        startQR();
+      }
+    });
   </script>
 </body>
 </html>
