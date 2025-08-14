@@ -54,20 +54,25 @@ const client = new Client({
   },
 });
 
+// QR Event
 client.on("qr", async (qr) => {
-  console.log("🔁 Scan QR to login");
-  qrImageBase64 = await qrcode.toDataURL(qr);
-  isReady = false;
+  if (!isReady) { // only generate QR if not already logged in
+    console.log("🔁 Scan QR to login");
+    qrImageBase64 = await qrcode.toDataURL(qr);
+  }
 });
 
+// Client Ready
 client.on("ready", () => {
   console.log("✅ WhatsApp client ready!");
-  qrImageBase64 = null;
+  qrImageBase64 = null; // clear QR
   isReady = true;
 });
 
+// Auth Failure
 client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
 
+// Disconnected
 client.on("disconnected", (reason) => {
   console.warn("⚠️ Disconnected:", reason);
   isReady = false;
@@ -78,12 +83,13 @@ client.initialize();
 
 // === API to get QR code ===
 app.get("/get-qr", (req, res) => {
-  if (qrImageBase64) {
-    res.json({ qr: qrImageBase64 });
-  } else {
-    res.json({ qr: null });
+  if (isReady) {
+    // If already logged in, no QR
+    return res.json({ qr: null, ready: true });
   }
+  res.json({ qr: qrImageBase64, ready: false });
 });
+
 function logMessage(phone, message) {
   const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
   fs.appendFile(logFile, logEntry, (err) => {
@@ -106,11 +112,8 @@ async function sendMessageOrMedia(phone, message, media) {
 
   if (media?.url) {
     if (media.url.startsWith("http")) {
-      const response = await axios.get(media.url, {
-        responseType: "arraybuffer",
-      });
-      const mimeType =
-        response.headers["content-type"] || "application/octet-stream";
+      const response = await axios.get(media.url, { responseType: "arraybuffer" });
+      const mimeType = response.headers["content-type"] || "application/octet-stream";
       const fileName = path.basename(media.url.split("?")[0]);
       mediaData = new MessageMedia(
         mimeType,
