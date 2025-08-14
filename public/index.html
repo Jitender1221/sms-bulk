@@ -1,167 +1,367 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>WhatsApp Bulk Sender</title>
-    <style>
-        body {
-            font-family: Arial;
-            max-width: 700px;
-            margin: 30px auto;
-            padding: 20px;
-            background: #f8f8f8;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        h2 {
-            text-align: center;
-        }
-
-        input,
-        textarea {
-            width: 100%;
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-
-        button {
-            padding: 10px 20px;
-            background: #25D366;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-
-        button:hover {
-            background: #1da851;
-        }
-
-        #status {
-            background: #fff;
-            border: 1px solid #ccc;
-            padding: 10px;
-            min-height: 150px;
-            border-radius: 5px;
-            white-space: pre-wrap;
-            overflow-y: auto;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WhatsApp Bulk Sender</title>
+  <meta name="color-scheme" content="light dark">
+  <style>
+    :root{
+      --bg: #0f1221;
+      --bg-soft: #12142a;
+      --card: #161a36;
+      --card-2: #1b2046;
+      --text: #e9ecff;
+      --muted:#a9b0d6;
+      --brand:#25D366;
+      --brand-d:#1da851;
+      --accent:#7aa2ff;
+      --danger:#ff5d7a;
+      --border: rgba(255,255,255,.08);
+      --shadow: 0 10px 25px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 0% -10%, #2331a820 0%, transparent 70%),
+        radial-gradient(1000px 800px at 120% 120%, #25D36622 0%, transparent 70%),
+        var(--bg);
+      padding: 24px;
+    }
+    .container{
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    header{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;margin-bottom:20px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo{
+      width:42px;height:42px;display:grid;place-items:center;
+      border-radius:12px;background:linear-gradient(145deg,var(--brand),#38f08d);
+      color:#0b2e17;font-weight:900;box-shadow: var(--shadow);
+    }
+    h1{font-size:22px;margin:0}
+    .muted{color:var(--muted);font-size:13px}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:18px;
+    }
+    @media (max-width: 900px){
+      .grid{grid-template-columns: 1fr}
+    }
+    .card{
+      background: linear-gradient(180deg,var(--card),var(--card-2));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px;
+    }
+    .card h2{
+      margin:0 0 10px 0;font-size:18px;font-weight:700;
+    }
+    .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    label{display:block;margin:12px 0 6px 0;font-weight:600}
+    input[type="file"], input[type="number"], textarea, input[type="text"]{
+      width:100%;padding:12px 12px;border-radius:12px;
+      border:1px solid var(--border);background:#0e1130;color:var(--text);
+      outline:none;
+    }
+    textarea{min-height:140px;resize:vertical}
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .btn{
+      appearance:none;border:none;border-radius:12px;padding:12px 16px;
+      background: var(--brand);color:#062314;font-weight:700;cursor:pointer;
+      box-shadow: var(--shadow);transition:.15s transform ease,.2s background ease;
+    }
+    .btn:hover{background: var(--brand-d); transform: translateY(-1px)}
+    .btn.secondary{ background:#2a2f5a;color:#e6e9ff }
+    .btn.ghost{ background: transparent; border:1px dashed var(--border); color: var(--text) }
+    .btn.icon{ display:flex; align-items:center; gap:8px }
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:6px 10px;border-radius:999px;background:#1d2146;border:1px solid var(--border);color:var(--muted);font-size:12px;
+    }
+    .ok{color:#4cf3a0}
+    .bad{color:var(--danger)}
+    .console{
+      background:#0a0d27;border:1px solid var(--border);
+      border-radius:14px;padding:12px;min-height:180px;max-height:300px;overflow:auto;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,"Liberation Mono","Courier New", monospace;
+      white-space:pre-wrap;
+    }
+    .progress{
+      height:10px;background:#0f1333;border-radius:999px;border:1px solid var(--border);overflow:hidden;
+    }
+    .progress > div{height:100%;width:0;background:linear-gradient(90deg,#38f08d,#7aa2ff)}
+    .qr-wrap{
+      display:grid;place-items:center;min-height:260px;border:1px dashed var(--border);border-radius:14px;background:#0b1033;
+    }
+    .qr-wrap img{max-width:220px;border-radius:12px;box-shadow: var(--shadow)}
+    .two-col{
+      display:grid;grid-template-columns:1fr 1fr;gap:10px
+    }
+    @media (max-width:600px){ .two-col{grid-template-columns:1fr} }
+    .pill{
+      display:inline-block;padding:6px 10px;border-radius:10px;background:#0f143a;color:var(--muted);border:1px solid var(--border);font-size:12px
+    }
+    .kbd{padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:#0c1033;font:12px ui-monospace}
+    .footer{margin-top:16px;color:var(--muted);font-size:12px;text-align:center}
+    .sep{height:1px;background:var(--border);margin:12px 0}
+  </style>
 </head>
-
 <body>
+  <div class="container">
+    <header>
+      <div class="brand">
+        <div class="logo">WA</div>
+        <div>
+          <h1>WhatsApp Bulk Sender</h1>
+          <div class="muted">Send personalized messages from an Excel sheet, and login with a QR code.</div>
+        </div>
+      </div>
+      <div class="chip" id="connChip">Status: <span>Connecting…</span></div>
+    </header>
 
-    <h2>Bulk WhatsApp Sender</h2>
-    <hr /><br />
+    <div class="grid">
+      <!-- Left: Bulk sender -->
+      <section class="card">
+        <h2>Bulk Message</h2>
 
-    <label>Upload Excel File (.xlsx):</label>
-    <input type="file" id="excelFile" accept=".xlsx,.xls" /><br />
+        <label>Upload Excel (.xlsx or .xls)</label>
+        <div class="row">
+          <input type="file" id="excelFile" accept=".xlsx,.xls" />
+          <button class="btn ghost" id="downloadTemplate">Download Template</button>
+        </div>
+        <div class="hint">Expected columns (case-insensitive): <span class="pill">Phone</span> <span class="pill">StudentName</span> <span class="pill">AIR</span> <span class="pill">CollegeName</span></div>
 
-    <label>Type your message (use #StudentName#, #AIR#, #CollegeName# placeholders):</label>
-    <textarea id="messageInput" rows="6" placeholder="Type your message here..."></textarea><br />
+        <label>Message (supports placeholders)</label>
+        <textarea id="messageInput" placeholder="Hi #StudentName#, congrats on AIR #AIR#! Welcome to #CollegeName#."></textarea>
+        <div class="two-col">
+          <div>
+            <label>Delay (seconds)</label>
+            <input type="number" id="delay" value="3" min="1" />
+          </div>
+          <div>
+            <label>Country Code</label>
+            <input type="text" id="countryCode" value="91" />
+            <div class="hint">No “+”. Example: <span class="kbd">91</span> for India.</div>
+          </div>
+        </div>
 
-    <label>Delay between messages (seconds):</label>
-    <input type="number" id="delay" value="3" min="1" /><br />
+        <div class="row" style="margin-top:8px">
+          <button class="btn icon" id="sendBtn">
+            <span>📤</span> Send Messages
+          </button>
+          <button class="btn secondary icon" id="downloadLogBtn">
+            <span>📥</span> Download Log
+          </button>
+          <span class="muted">Sending uses your logged-in WhatsApp session.</span>
+        </div>
 
-    <button onclick="sendBulkExcel()">Send Messages</button>
-    <button onclick="downloadLog()">Download Log</button>
+        <div class="sep"></div>
 
-    <div id="status"></div>
+        <div class="progress" aria-label="progress">
+          <div id="bar"></div>
+        </div>
 
-    <h1>WhatsApp Login</h1>
-    <p>Scan this QR code with your WhatsApp to log in:</p>
-    <div id="qrCode">Loading QR...</div>
+        <div class="console" id="status" aria-live="polite"></div>
+      </section>
 
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script>
-        const API_BASE = "https://sms-bulk.onrender.com"; // Your Render backend URL
+      <!-- Right: QR & session -->
+      <section class="card">
+        <h2>Login with WhatsApp</h2>
+        <div class="qr-wrap" id="qrWrap">
+          <div id="qrCode" class="muted">Loading QR…</div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn secondary" id="refreshQR">Refresh QR</button>
+          <button class="btn ghost" id="stopQR">Stop Polling</button>
+        </div>
+        <div class="hint" style="margin-top:8px">
+          Open WhatsApp → <b>Linked devices</b> → <b>Link a device</b> → Scan the QR code.
+        </div>
+      </section>
+    </div>
 
-        async function fetchQR() {
-            try {
-                const res = await fetch(`${API_BASE}/get-qr`);
-                const data = await res.json();
-                if (data.qr) {
-                    document.getElementById("qrCode").innerHTML = `<img id="qrImg" src="${data.qr}">`;
-                } else {
-                    document.getElementById("qrCode").innerHTML = `<b>✅ Logged in to WhatsApp!</b>`;
-                    clearInterval(qrInterval);
-                }
-            } catch (e) {
-                document.getElementById("qrCode").innerHTML = `❌ Error fetching QR`;
+    <div class="footer">
+      Tip: Use placeholders <span class="kbd">#StudentName#</span>, <span class="kbd">#AIR#</span>, <span class="kbd">#CollegeName#</span> in your message.<br/>
+     
+    </div>
+    <br/>
+  </div>
+
+  <!-- XLSX -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script>
+    // Use same-origin by default (safer for Render)
+    const API_BASE = location.origin;
+
+    const els = {
+      qrWrap: document.getElementById('qrWrap'),
+      qrCode: document.getElementById('qrCode'),
+      status: document.getElementById('status'),
+      bar: document.getElementById('bar'),
+      connChip: document.getElementById('connChip').querySelector('span'),
+      sendBtn: document.getElementById('sendBtn'),
+      downloadLogBtn: document.getElementById('downloadLogBtn'),
+      excelFile: document.getElementById('excelFile'),
+      messageInput: document.getElementById('messageInput'),
+      delay: document.getElementById('delay'),
+      countryCode: document.getElementById('countryCode'),
+      refreshQR: document.getElementById('refreshQR'),
+      stopQR: document.getElementById('stopQR'),
+      downloadTemplate: document.getElementById('downloadTemplate'),
+    };
+
+    // --- QR polling ---
+    let qrTimer = null;
+    async function fetchQR() {
+      try {
+        const res = await fetch(`${API_BASE}/get-qr`, { cache: "no-store" });
+        const data = await res.json();
+        if (data.qr) {
+          els.qrCode.innerHTML = `<img src="${data.qr}" alt="WhatsApp QR Code">`;
+          els.connChip.textContent = "Scan to login";
+        } else {
+          els.qrCode.innerHTML = `<b class="ok">✅ Logged in to WhatsApp</b>`;
+          els.connChip.textContent = "Ready";
+        }
+      } catch (e) {
+        els.qrCode.textContent = "❌ Error fetching QR";
+        els.connChip.textContent = "Error";
+      }
+    }
+
+    function startQR() {
+      stopQR();
+      fetchQR();
+      qrTimer = setInterval(fetchQR, 3000);
+    }
+    function stopQR() {
+      if (qrTimer) clearInterval(qrTimer);
+      qrTimer = null;
+    }
+    els.refreshQR.addEventListener('click', startQR);
+    els.stopQR.addEventListener('click', stopQR);
+    startQR();
+
+    // --- Template download (example Excel as CSV, easy to open in Excel) ---
+    els.downloadTemplate.addEventListener('click', () => {
+      const csv = "Phone,StudentName,AIR,CollegeName\n9123456789,Akash,57,IIT Bombay\n9876543210,Neha,102,AIIMS Delhi\n";
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = "whatsapp_template.csv";
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // --- Helpers ---
+    function log(line) {
+      els.status.textContent += line + "\n";
+      els.status.scrollTop = els.status.scrollHeight;
+    }
+    function setProgress(done, total) {
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      els.bar.style.width = pct + "%";
+    }
+    function normalizePhone(raw, cc) {
+      let p = String(raw ?? "").replace(/\D/g, "");
+      if (!p) return "";
+      if (!p.startsWith(cc)) p = cc + p.replace(/^0+/, "");
+      return p;
+    }
+
+    // --- Send bulk ---
+    els.sendBtn.addEventListener('click', sendBulkExcel);
+    els.downloadLogBtn.addEventListener('click', () => {
+      window.open(`${API_BASE}/download-log`, "_blank");
+    });
+
+    async function sendBulkExcel() {
+      const file = els.excelFile.files[0];
+      const delaySec = Math.max(1, parseInt(els.delay.value || "3", 10));
+      const cc = els.countryCode.value.replace(/\D/g, "") || "91";
+      const rawMessage = els.messageInput.value.trim();
+
+      els.status.textContent = "";
+      setProgress(0, 1);
+
+      if (!file) return alert("Please select an Excel file");
+      if (!rawMessage) return alert("Please type your message");
+
+      try {
+        // Read Excel
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf);
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet);
+
+        if (!rows.length) return alert("Excel file is empty!");
+
+        log(`Found ${rows.length} rows.\n`);
+        let sent = 0;
+
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+
+          // Accept various header casings
+          let phone = row.Phone ?? row.phone ?? row.Mobile ?? row.mobile ?? "";
+          phone = normalizePhone(phone, cc);
+
+          if (!phone) {
+            log(`Row ${i+1}: ❌ Missing phone number. Skipping.`);
+            setProgress(i+1, rows.length);
+            continue;
+          }
+
+          const message = rawMessage
+            .replace(/#StudentName#/g, row.StudentName ?? row.studentname ?? "")
+            .replace(/#AIR#/g, row.AIR ?? row.air ?? "")
+            .replace(/#CollegeName#/g, row.CollegeName ?? row.collegename ?? "");
+
+          try {
+            const res = await fetch(`${API_BASE}/send-message`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone, message })
+            });
+
+            if (res.status === 503) {
+              log(`Row ${i+1} (${phone}): ⏳ Client not ready. Please scan QR and try again.`);
+              break;
             }
-        }
 
-        const qrInterval = setInterval(fetchQR, 3000);
-        fetchQR();
-
-        async function sendBulkExcel() {
-            const file = document.getElementById('excelFile').files[0];
-            const delaySec = parseInt(document.getElementById('delay').value);
-            const rawMessage = document.getElementById('messageInput').value.trim();
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = "";
-
-            if (!file) return alert("Please select an Excel file");
-            if (!rawMessage) return alert("Please type your message");
-
-            try {
-                const data = await file.arrayBuffer();
-                const workbook = XLSX.read(data);
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(sheet);
-
-                if (rows.length === 0) return alert("Excel file is empty!");
-
-                statusDiv.textContent += `Found ${rows.length} rows.\n`;
-
-                for (let row of rows) {
-                    let phone = row.Phone || row.phone || row.Mobile || row.mobile || "";
-                    phone = phone.toString().replace(/\D/g, "");
-                    if (!phone) {
-                        statusDiv.textContent += "❌ Missing phone number. Skipping row.\n";
-                        continue;
-                    }
-                    if (!phone.startsWith("91")) phone = "91" + phone;
-
-                    const message = rawMessage
-                        .replace(/#StudentName#/g, row.StudentName || "")
-                        .replace(/#AIR#/g, row.AIR || "")
-                        .replace(/#CollegeName#/g, row.CollegeName || "");
-
-                    try {
-                        const res = await fetch(`${API_BASE}/send-message`, {
-                            method: 'POST',
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ phone, message })
-                        });
-                        const result = await res.json();
-                        statusDiv.textContent += `${phone}: ${result.success ? '✅ Sent' : '❌ Failed'}\n`;
-                    } catch {
-                        statusDiv.textContent += `${phone}: ❌ Error\n`;
-                    }
-
-                    statusDiv.scrollTop = statusDiv.scrollHeight;
-                    await new Promise(r => setTimeout(r, delaySec * 1000));
-                }
-
-                statusDiv.textContent += "\n✅ All messages processed.";
-            } catch (err) {
-                alert("Error reading Excel file: " + err.message);
+            const data = await res.json();
+            if (data.success) {
+              log(`Row ${i+1} (${phone}): ✅ Sent`);
+              sent++;
+            } else {
+              const reason = data.message || data.error || "Failed";
+              log(`Row ${i+1} (${phone}): ❌ ${reason}`);
             }
+          } catch (err) {
+            log(`Row ${i+1} (${phone}): ❌ Network error`);
+          }
+
+          setProgress(i+1, rows.length);
+          await new Promise(r => setTimeout(r, delaySec * 1000));
         }
 
-        function downloadLog() {
-            window.open(`${API_BASE}/download-log`, "_blank");
-        }
-    </script>
-
+        log(`\nDone. Sent: ${sent}/${rows.length}`);
+      } catch (err) {
+        alert("Error reading Excel file: " + err.message);
+      }
+    }
+  </script>
 </body>
 </html>
