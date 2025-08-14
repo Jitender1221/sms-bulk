@@ -36,6 +36,8 @@ const upload = multer({ storage });
 
 // WhatsApp Client
 let qrImageBase64 = null;
+let isReady = false;
+let qrGenerated = false;
 
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
@@ -53,32 +55,30 @@ const client = new Client({
   },
 });
 
-// Function to check if client is ready
-function checkClientReady() {
-  return client && client.info && client.info.wid; // wid exists when logged in
-}
-
-// QR Event
 client.on("qr", async (qr) => {
-  if (!checkClientReady()) { // only set QR if not logged in
-    console.log("🔁 Scan QR to login");
-    qrImageBase64 = await qrcode.toDataURL(qr);
-  }
+  console.log("🔁 Scan QR to login");
+  qrImageBase64 = await qrcode.toDataURL(qr);
+  qrGenerated = true;
+  isReady = false;
 });
 
-// Client Ready
 client.on("ready", () => {
   console.log("✅ WhatsApp client ready!");
-  qrImageBase64 = null; // clear QR
+  qrImageBase64 = null;
+  qrGenerated = false;
+  isReady = true;
 });
 
-// Auth Failure
-client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
+client.on("auth_failure", (msg) => {
+  console.error("❌ Auth failure:", msg);
+  qrGenerated = false;
+  isReady = false;
+});
 
-// Disconnected
 client.on("disconnected", (reason) => {
   console.warn("⚠️ Disconnected:", reason);
-  qrImageBase64 = null;
+  isReady = false;
+  qrGenerated = false;
   setTimeout(() => client.initialize(), 5000);
 });
 
@@ -86,10 +86,20 @@ client.initialize();
 
 // === API to get QR code ===
 app.get("/get-qr", (req, res) => {
-  if (checkClientReady()) {
-    return res.json({ qr: null, ready: true });
+  if (isReady) {
+    return res.json({ status: "already_authenticated" });
   }
-  res.json({ qr: qrImageBase64, ready: false });
+
+  if (qrImageBase64) {
+    res.json({ qr: qrImageBase64, status: "qr_generated" });
+  } else {
+    res.json({ qr: null, status: "waiting_for_qr" });
+  }
+});
+
+// API to check authentication status
+app.get("/check-auth", (req, res) => {
+  res.json({ isReady });
 });
 
 function logMessage(phone, message) {
@@ -114,8 +124,11 @@ async function sendMessageOrMedia(phone, message, media) {
 
   if (media?.url) {
     if (media.url.startsWith("http")) {
-      const response = await axios.get(media.url, { responseType: "arraybuffer" });
-      const mimeType = response.headers["content-type"] || "application/octet-stream";
+      const response = await axios.get(media.url, {
+        responseType: "arraybuffer",
+      });
+      const mimeType =
+        response.headers["content-type"] || "application/octet-stream";
       const fileName = path.basename(media.url.split("?")[0]);
       mediaData = new MessageMedia(
         mimeType,
@@ -149,7 +162,7 @@ async function sendMessageOrMedia(phone, message, media) {
 
 // Single send
 app.post("/send-message", async (req, res) => {
-  if (!checkClientReady())
+  if (!isReady)
     return res.status(503).json({ error: "WhatsApp client not ready" });
 
   try {
@@ -170,7 +183,7 @@ app.post("/send-message", async (req, res) => {
 
 // Bulk send
 app.post("/send-messages", async (req, res) => {
-  if (!checkClientReady())
+  if (!isReady)
     return res.status(503).json({ error: "WhatsApp client not ready" });
 
   const messages = req.body.messages;
