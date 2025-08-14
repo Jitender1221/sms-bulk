@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const mime = require("mime-types");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
+const qrcode = require("qrcode"); // <-- for browser QR
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -13,6 +13,8 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+let qrImageBase64 = null; // store QR code as base64
+
 // === Setup directories ===
 const uploadPath = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
@@ -22,7 +24,7 @@ if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
 
 const logFile = path.join(logPath, "success.log");
 
-// === Multer storage for file upload ===
+// === Multer storage ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
   filename: (req, file, cb) => {
@@ -33,21 +35,33 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// === WhatsApp Client initialization ===
+// === WhatsApp Client ===
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
   puppeteer: {
-    headless: false,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--disable-gpu",
+    ],
   },
 });
 
-client.on("qr", (qr) => {
-  console.log("🔁 Scan QR to login:");
-  qrcode.generate(qr, { small: true });
+client.on("qr", async (qr) => {
+  console.log("🔁 Scan QR to login");
+  qrImageBase64 = await qrcode.toDataURL(qr); // store as base64 image
 });
 
-client.on("ready", () => console.log("✅ WhatsApp client ready!"));
+client.on("ready", () => {
+  console.log("✅ WhatsApp client ready!");
+  qrImageBase64 = null; // remove QR when logged in
+});
+
 client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
 client.on("disconnected", (reason) => {
   console.warn("⚠️ Disconnected:", reason);
@@ -56,7 +70,16 @@ client.on("disconnected", (reason) => {
 
 client.initialize();
 
-// === Logging ===
+// === API to get QR code ===
+app.get("/get-qr", (req, res) => {
+  if (qrImageBase64) {
+    res.json({ qr: qrImageBase64 });
+  } else {
+    res.json({ qr: null });
+  }
+});
+
+// === Logging function ===
 function logMessage(phone, message) {
   const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
   fs.appendFile(logFile, logEntry, (err) => {
@@ -64,7 +87,7 @@ function logMessage(phone, message) {
   });
 }
 
-// === Core message sending function ===
+// === Sending functions ===
 async function sendMessageOrMedia(phone, message, media) {
   phone = phone.replace(/\D/g, "");
   if (!phone.startsWith("91")) phone = "91" + phone;
@@ -125,12 +148,12 @@ app.post("/send-message", async (req, res) => {
 
 // === Bulk send endpoint ===
 app.post("/send-messages", async (req, res) => {
-  const messages = req.body.messages; // [{phone, message, media}, ...]
+  const messages = req.body.messages;
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "No messages provided" });
   }
 
-  const concurrency = 5; // Adjust speed-vs-safety
+  const concurrency = 5;
   let results = [];
   let idx = 0;
 
@@ -143,7 +166,7 @@ app.post("/send-messages", async (req, res) => {
     } catch (err) {
       results.push({ phone, success: false, error: err.message });
     }
-    await new Promise((r) => setTimeout(r, 200 + Math.random() * 300)); // mimic human
+    await new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
     return sendNext();
   }
 
@@ -164,7 +187,6 @@ app.post("/upload-media", upload.single("file"), (req, res) => {
   res.json({ url: `/uploads/${req.file.filename}` });
 });
 
-// === Static serve uploads ===
 app.use("/uploads", express.static(uploadPath));
 
 // === Start server ===
