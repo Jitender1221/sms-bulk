@@ -1,136 +1,166 @@
-// server.js
 const fs = require("fs");
 const path = require("path");
 const mime = require("mime-types");
+const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
+const qrcode = require("qrcode-terminal");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const multer = require("multer");
 const axios = require("axios");
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const http = require("http");
-const socketIo = require("socket.io");
+const multer = require("multer");
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, { cors: { origin: "*" } });
-
 app.use(cors());
 app.use(bodyParser.json());
 
-// ==== Setup directories ====
+// === Setup directories ===
 const uploadPath = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
+
 const logPath = path.join(__dirname, "logs");
 if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
+
 const logFile = path.join(logPath, "success.log");
 
-// ==== Multer ====
+// === Multer storage for file upload ===
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
   }
 });
 const upload = multer({ storage });
 
-// ==== WhatsApp Client ====
-let client;
-function initClient() {
-  client = new Client({
-    authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
-    puppeteer: { headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] }
-  });
+// === WhatsApp Client initialization ===
+const client = new Client({
+  authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
+  puppeteer: {
+    headless: false,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  },
+});
 
-  client.on("qr", (qr) => {
-    console.log("QR code generated");
-    io.emit("qr", qr);
-  });
+client.on("qr", (qr) => {
+  console.log("🔁 Scan QR to login:");
+  qrcode.generate(qr, { small: true });
+});
 
-  client.on("ready", () => {
-    console.log("✅ WhatsApp is ready");
-    io.emit("ready", true);
-  });
+client.on("ready", () => console.log("✅ WhatsApp client ready!"));
+client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
+client.on("disconnected", (reason) => {
+  console.warn("⚠️ Disconnected:", reason);
+  client.destroy().then(() => client.initialize());
+});
 
-  client.on("disconnected", () => {
-    console.log("❌ Disconnected, reinitializing...");
-    io.emit("disconnected", true);
-    initClient();
-    client.initialize();
-  });
+client.initialize();
 
-  client.initialize();
-}
-initClient();
-
-// ==== Logging ====
+// === Logging ===
 function logMessage(phone, message) {
-  fs.appendFileSync(logFile, `${new Date().toISOString()} | ${phone} | ${message}\n`);
+  const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
+  fs.appendFile(logFile, logEntry, (err) => {
+    if (err) console.error("❌ Error writing log:", err);
+  });
 }
 
-// ==== Message Sender ====
+// === Core message sending function ===
 async function sendMessageOrMedia(phone, message, media) {
   phone = phone.replace(/\D/g, "");
   if (!phone.startsWith("91")) phone = "91" + phone;
+
   const numberDetails = await client.getNumberId(phone);
   if (!numberDetails) throw new Error(`Phone ${phone} not on WhatsApp`);
-  const chatId = numberDetails._serialized;
 
+  const chatId = numberDetails._serialized;
   let mediaData;
+
   if (media?.url) {
     if (media.url.startsWith("http")) {
-      const resp = await axios.get(media.url, { responseType: "arraybuffer" });
-      mediaData = new MessageMedia(resp.headers["content-type"], Buffer.from(resp.data).toString("base64"), path.basename(media.url));
+      const response = await axios.get(media.url, { responseType: "arraybuffer" });
+      const mimeType = response.headers["content-type"] || "application/octet-stream";
+      const fileName = path.basename(media.url.split("?")[0]);
+      mediaData = new MessageMedia(
+        mimeType,
+        Buffer.from(response.data).toString("base64"),
+        fileName
+      );
     } else {
       const localPath = path.join(__dirname, media.url.replace(/^\/+/, ""));
       if (!fs.existsSync(localPath)) throw new Error("Media not found");
+      const mimeType = mime.lookup(localPath) || "application/octet-stream";
       const buffer = fs.readFileSync(localPath);
-      mediaData = new MessageMedia(mime.lookup(localPath) || "application/octet-stream", buffer.toString("base64"), path.basename(localPath));
+      mediaData = new MessageMedia(
+        mimeType,
+        buffer.toString("base64"),
+        path.basename(localPath)
+      );
     }
   }
 
   if (mediaData) {
-    await client.sendMessage(chatId, mediaData, { caption: message });
-  } else {
+    await client.sendMessage(chatId, mediaData, { caption: media.caption || message });
+    logMessage(phone, `[MEDIA] ${media.caption || message}`);
+  } else if (message) {
     await client.sendMessage(chatId, message);
+    logMessage(phone, message);
   }
-  logMessage(phone, message);
 }
 
-// ==== Endpoints ====
-
-// Send single
+// === Single send endpoint ===
 app.post("/send-message", async (req, res) => {
   try {
     await sendMessageOrMedia(req.body.phone, req.body.message, req.body.media);
-    res.json({ success: true });
+    res.json({ success: true, message: `Message sent to ${req.body.phone}` });
   } catch (err) {
-    res.json({ success: false, error: err.message });
+    console.error("❌ Error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Download log
+// === Bulk send endpoint ===
+app.post("/send-messages", async (req, res) => {
+  const messages = req.body.messages; // [{phone, message, media}, ...]
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: "No messages provided" });
+  }
+
+  const concurrency = 5; // Adjust speed-vs-safety
+  let results = [];
+  let idx = 0;
+
+  async function sendNext() {
+    if (idx >= messages.length) return;
+    const { phone, message, media } = messages[idx++];
+    try {
+      await sendMessageOrMedia(phone, message, media);
+      results.push({ phone, success: true });
+    } catch (err) {
+      results.push({ phone, success: false, error: err.message });
+    }
+    await new Promise(r => setTimeout(r, 200 + Math.random() * 300)); // mimic human
+    return sendNext();
+  }
+
+  await Promise.all(Array(concurrency).fill(0).map(sendNext));
+  res.json({ results });
+});
+
+// === Download logs ===
 app.get("/download-log", (req, res) => {
   if (!fs.existsSync(logFile)) return res.status(404).send("Log file not found");
-  res.download(logFile);
+  res.download(logFile, "whatsapp_success_log.txt");
 });
 
-// Upload media
+// === Upload endpoint ===
 app.post("/upload-media", upload.single("file"), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
   res.json({ url: `/uploads/${req.file.filename}` });
 });
+
+// === Static serve uploads ===
 app.use("/uploads", express.static(uploadPath));
 
-// Logout button
-app.get("/logout", async (req, res) => {
-  try {
-    await client.logout();
-    io.emit("logout", true);
-    res.json({ success: true, message: "Logged out" });
-  } catch (err) {
-    res.json({ success: false, error: err.message });
-  }
-});
-
-server.listen(3000, () => console.log("🚀 Server running on http://localhost:3000"));
+// === Start server ===
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
