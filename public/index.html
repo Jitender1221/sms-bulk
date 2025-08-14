@@ -200,9 +200,9 @@
   </div>
 
   <!-- XLSX -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script>
-    // Use same-origin by default (safer for Render)
+  document.addEventListener("DOMContentLoaded", () => {
     const API_BASE = location.origin;
 
     const els = {
@@ -362,6 +362,7 @@
         alert("Error reading Excel file: " + err.message);
       }
     }
+    });
   </script>
 </body>
 </html>
