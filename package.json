@@ -18,7 +18,7 @@
     "mime-types": "^3.0.1",
     "multer": "^2.0.2",
     "mysql": "^2.18.1",
-    "puppeteer": "^24.6.1",
+    "puppeteer": "^24.16.1",
     "qrcode": "^1.5.4",
     "qrcode-terminal": "^0.12.0",
     "whatsapp-web.js": "^1.32.0",
