@@ -229,7 +229,7 @@
     // --- QR polling ---
     async function fetchQR() {
       try {
-        const res = await fetch(`${API_BASE}/get-qr`, { cache: "no-store" });
+const res = await fetch('/get-qr');
         const data = await res.json();
         
         if (data.status === "already_authenticated") {
