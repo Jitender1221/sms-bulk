@@ -191,12 +191,14 @@ app.post("/upload-media", upload.single("file"), (req, res) => {
 app.use("/uploads", express.static(uploadPath));
 
 // === Fallback: serve index.html for any unknown route ===
-app.get("*", (req, res) => {
+app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+
 
 // === Start server ===
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
   console.log(`🚀 Server running at http://localhost:${PORT}`)
 );
+
