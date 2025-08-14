@@ -11,14 +11,17 @@ const multer = require("multer");
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public"))); // Serve index.html
+app.use(express.static(path.join(__dirname, "public")));
 
+// Directories setup
 const uploadPath = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
-
 const logPath = path.join(__dirname, "logs");
+const sessionPath = path.join(__dirname, ".wwebjs_auth");
+
+if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
 if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
 
 const logFile = path.join(logPath, "success.log");
@@ -37,59 +40,72 @@ const upload = multer({ storage });
 // WhatsApp Client
 let qrImageBase64 = null;
 let isReady = false;
-let qrGenerated = false;
+let client = null;
+let clients = new Set();
 
-const client = new Client({
-  authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
-  puppeteer: {
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-accelerated-2d-canvas",
-      "--no-first-run",
-      "--no-zygote",
-      "--disable-gpu",
-    ],
-  },
-});
+// Initialize WhatsApp Client
+function initClient() {
+  if (client) return client;
 
-client.on("qr", async (qr) => {
-  console.log("🔁 Scan QR to login");
-  qrImageBase64 = await qrcode.toDataURL(qr);
-  qrGenerated = true;
-  isReady = false;
-});
+  client = new Client({
+    authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
+    puppeteer: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--disable-gpu",
+      ],
+    },
+  });
 
-client.on("ready", () => {
-  console.log("✅ WhatsApp client ready!");
-  qrImageBase64 = null;
-  qrGenerated = false;
-  isReady = true;
-});
+  client.on("qr", async (qr) => {
+    console.log("🔁 QR Code generated");
+    qrImageBase64 = await qrcode.toDataURL(qr);
+    isReady = false;
+    notifyClients({ event: "qr", qr: qrImageBase64 });
+  });
 
-client.on("auth_failure", (msg) => {
-  console.error("❌ Auth failure:", msg);
-  qrGenerated = false;
-  isReady = false;
-});
+  client.on("ready", () => {
+    console.log("✅ WhatsApp client ready!");
+    qrImageBase64 = null;
+    isReady = true;
+    notifyClients({ event: "ready" });
+  });
 
-client.on("disconnected", (reason) => {
-  console.warn("⚠️ Disconnected:", reason);
-  isReady = false;
-  qrGenerated = false;
-  setTimeout(() => client.initialize(), 5000);
-});
+  client.on("auth_failure", (msg) => {
+    console.error("❌ Auth failure:", msg);
+    notifyClients({ event: "auth_failure", message: msg });
+  });
 
-client.initialize();
+  client.on("disconnected", (reason) => {
+    console.warn("⚠️ Disconnected:", reason);
+    isReady = false;
+    notifyClients({ event: "disconnected", reason });
+    setTimeout(() => {
+      client.initialize();
+    }, 5000);
+  });
 
-// === API to get QR code ===
+  client.initialize();
+  return client;
+}
+
+// SSE for backend events
+function notifyClients(data) {
+  const message = `data: ${JSON.stringify(data)}\n\n`;
+  clients.forEach((client) => client.res.write(message));
+}
+
+// Routes
 app.get("/get-qr", (req, res) => {
   if (isReady) {
     return res.json({ status: "already_authenticated" });
   }
-  
   if (qrImageBase64) {
     res.json({ qr: qrImageBase64, status: "qr_generated" });
   } else {
@@ -97,11 +113,51 @@ app.get("/get-qr", (req, res) => {
   }
 });
 
-// API to check authentication status
 app.get("/check-auth", (req, res) => {
   res.json({ isReady });
 });
 
+app.post("/logout", async (req, res) => {
+  try {
+    if (client) {
+      await client.logout();
+      await client.destroy();
+      client = null;
+
+      // Clear session data
+      if (fs.existsSync(sessionPath)) {
+        fs.rmSync(sessionPath, { recursive: true });
+      }
+
+      // Reinitialize client
+      initClient();
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/backend-events", (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  const clientId = Date.now();
+  const newClient = {
+    id: clientId,
+    res,
+  };
+
+  clients.add(newClient);
+
+  req.on("close", () => {
+    clients.delete(newClient);
+  });
+});
+
+// Logging function
 function logMessage(phone, message) {
   const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
   fs.appendFile(logFile, logEntry, (err) => {
@@ -109,6 +165,7 @@ function logMessage(phone, message) {
   });
 }
 
+// Message sending function
 async function sendMessageOrMedia(phone, message, media) {
   phone = phone.replace(/\D/g, "");
   if (!phone.startsWith("91")) phone = "91" + phone;
@@ -160,7 +217,7 @@ async function sendMessageOrMedia(phone, message, media) {
   return { skipped: false };
 }
 
-// Single send
+// API endpoints
 app.post("/send-message", async (req, res) => {
   if (!isReady)
     return res.status(503).json({ error: "WhatsApp client not ready" });
@@ -181,7 +238,6 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
-// Bulk send
 app.post("/send-messages", async (req, res) => {
   if (!isReady)
     return res.status(503).json({ error: "WhatsApp client not ready" });
@@ -222,14 +278,12 @@ app.post("/send-messages", async (req, res) => {
   res.json({ results });
 });
 
-// Logs
 app.get("/download-log", (req, res) => {
   if (!fs.existsSync(logFile))
     return res.status(404).send("Log file not found");
   res.download(logFile, "whatsapp_success_log.txt");
 });
 
-// File upload
 app.post("/upload-media", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
   res.json({ url: `/uploads/${req.file.filename}` });
@@ -241,7 +295,14 @@ app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
+// Initialize client
+initClient();
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  notifyClients({
+    event: "server_start",
+    message: `Server started on port ${PORT}`,
+  });
+});
