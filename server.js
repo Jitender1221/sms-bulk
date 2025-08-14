@@ -108,8 +108,11 @@ async function sendMessageOrMedia(phone, message, media) {
 
   if (media?.url) {
     if (media.url.startsWith("http")) {
-      const response = await axios.get(media.url, { responseType: "arraybuffer" });
-      const mimeType = response.headers["content-type"] || "application/octet-stream";
+      const response = await axios.get(media.url, {
+        responseType: "arraybuffer",
+      });
+      const mimeType =
+        response.headers["content-type"] || "application/octet-stream";
       const fileName = path.basename(media.url.split("?")[0]);
       mediaData = new MessageMedia(
         mimeType,
@@ -130,7 +133,9 @@ async function sendMessageOrMedia(phone, message, media) {
   }
 
   if (mediaData) {
-    await client.sendMessage(chatId, mediaData, { caption: media.caption || message });
+    await client.sendMessage(chatId, mediaData, {
+      caption: media.caption || message,
+    });
     logMessage(phone, `[MEDIA] ${media.caption || message}`);
   } else if (message) {
     await client.sendMessage(chatId, message);
@@ -141,10 +146,15 @@ async function sendMessageOrMedia(phone, message, media) {
 
 // === Single send endpoint ===
 app.post("/send-message", async (req, res) => {
-  if (!isReady) return res.status(503).json({ error: "WhatsApp client not ready" });
+  if (!isReady)
+    return res.status(503).json({ error: "WhatsApp client not ready" });
 
   try {
-    const result = await sendMessageOrMedia(req.body.phone, req.body.message, req.body.media);
+    const result = await sendMessageOrMedia(
+      req.body.phone,
+      req.body.message,
+      req.body.media
+    );
     if (result.skipped) {
       return res.json({ success: false, message: result.reason });
     }
@@ -157,7 +167,8 @@ app.post("/send-message", async (req, res) => {
 
 // === Bulk send endpoint ===
 app.post("/send-messages", async (req, res) => {
-  if (!isReady) return res.status(503).json({ error: "WhatsApp client not ready" });
+  if (!isReady)
+    return res.status(503).json({ error: "WhatsApp client not ready" });
 
   const messages = req.body.messages;
   if (!Array.isArray(messages) || messages.length === 0) {
@@ -173,9 +184,19 @@ app.post("/send-messages", async (req, res) => {
     const { phone, message, media } = messages[idx++];
     try {
       const result = await sendMessageOrMedia(phone, message, media);
-      results.push({ phone, success: !result.skipped, skipped: result.skipped, error: result.reason || null });
+      results.push({
+        phone,
+        success: !result.skipped,
+        skipped: result.skipped,
+        error: result.reason || null,
+      });
     } catch (err) {
-      results.push({ phone, success: false, skipped: false, error: err.message });
+      results.push({
+        phone,
+        success: false,
+        skipped: false,
+        error: err.message,
+      });
     }
     await new Promise((r) => setTimeout(r, 200 + Math.random() * 300));
     return sendNext();
@@ -187,7 +208,8 @@ app.post("/send-messages", async (req, res) => {
 
 // === Download logs ===
 app.get("/download-log", (req, res) => {
-  if (!fs.existsSync(logFile)) return res.status(404).send("Log file not found");
+  if (!fs.existsSync(logFile))
+    return res.status(404).send("Log file not found");
   res.download(logFile, "whatsapp_success_log.txt");
 });
 
@@ -206,4 +228,6 @@ app.get(/.*/, (req, res) => {
 
 // === Start server ===
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running at http://localhost:${PORT}`)
+);
