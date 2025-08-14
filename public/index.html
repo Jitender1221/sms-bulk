@@ -5,10 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WhatsApp Bulk Sender</title>
   <meta name="color-scheme" content="light dark">
-
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <!-- ✅ Add socket.io client -->
-  <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
     :root{
@@ -200,74 +197,9 @@
     <div class="footer">
       Tip: Use placeholders <span class="kbd">#StudentName#</span>, <span class="kbd">#AIR#</span>, <span class="kbd">#CollegeName#</span> in your message.<br/>
     </div>
-     <section class="card">
-        <h2>Login with WhatsApp</h2>
-        <div class="qr-wrap" id="qrWrap">
-          <img id="qrImg" src="" alt="QR will appear here">
-        </div>
-        <div id="loginStatus" class="muted" style="margin-top:8px;">Connecting...</div>
-        <div class="row" style="margin-top:10px">
-          <button class="btn secondary" onclick="logout()">Logout</button>
-        </div>
-      </section>
     <br/>
   </div>
- <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-  <script>
-    const socket = io("http://localhost:3000");
 
-    socket.on("qr", qr => {
-      document.getElementById("qr").src = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr)}&size=300x300`;
-      document.getElementById("loginStatus").textContent = "Scan this QR to login";
-    });
-
-    socket.on("ready", () => {
-      document.getElementById("loginStatus").textContent = "✅ WhatsApp is connected";
-      document.getElementById("qr").src = "";
-    });
-
-    socket.on("logout", () => {
-      document.getElementById("loginStatus").textContent = "Logged out. Scan QR to login again.";
-    });
-
-    function logout() {
-      fetch("http://localhost:3000/logout").then(r => r.json()).then(data => {
-        alert(data.message || "Logged out");
-      });
-    }
-
-    async function sendBulkExcel() {
-      const file = document.getElementById("excelFile").files[0];
-      const delaySec = parseInt(document.getElementById("delay").value);
-      const rawMessage = document.getElementById("messageInput").value.trim();
-      const statusDiv = document.getElementById("status");
-      statusDiv.textContent = "";
-
-      if (!file || !rawMessage) return alert("File & message required");
-
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
-      const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-      for (let row of rows) {
-        let phone = (row.Phone || row.Mobile || "").toString().replace(/\D/g, "");
-        if (!phone) continue;
-        if (!phone.startsWith("91")) phone = "91" + phone;
-        const msg = rawMessage;
-        const res = await fetch("http://localhost:3000/send-message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone, message: msg })
-        });
-        const resp = await res.json();
-        statusDiv.textContent += `${phone}: ${resp.success ? "✅" : "❌"}\n`;
-        await new Promise(r => setTimeout(r, delaySec * 1000));
-      }
-    }
-
-    function downloadLog() {
-      window.open("http://localhost:3000/download-log", "_blank");
-    }
-  </script>
   <script>
     // Use same-origin by default (safer for Render)
     const API_BASE = window.location.origin; // Use current origin instead of hardcoded URL
@@ -297,7 +229,7 @@
     // --- QR polling ---
     async function fetchQR() {
       try {
-const res = await fetch('/get-qr');
+        const res = await fetch(`${API_BASE}/get-qr`, { cache: "no-store" });
         const data = await res.json();
         
         if (data.status === "already_authenticated") {
