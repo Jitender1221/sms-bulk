@@ -200,10 +200,10 @@
   </div>
 
   <!-- XLSX -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const API_BASE = location.origin;
+    // Use same-origin by default (safer for Render)
+    const API_BASE = "https://sms-bulk.onrender.com";
 
     const els = {
       qrWrap: document.getElementById('qrWrap'),
@@ -362,7 +362,6 @@
         alert("Error reading Excel file: " + err.message);
       }
     }
-    });
   </script>
 </body>
 </html>
