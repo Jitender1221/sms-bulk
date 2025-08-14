@@ -11,14 +11,10 @@ const multer = require("multer");
 
 const app = express();
 
-// === Middleware ===
 app.use(cors());
 app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, "public"))); // Serve index.html
 
-// === Serve static frontend ===
-app.use(express.static(path.join(__dirname, "public"))); // index.html will be here
-
-// === Setup directories ===
 const uploadPath = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
 
@@ -27,7 +23,7 @@ if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
 
 const logFile = path.join(logPath, "success.log");
 
-// === Multer storage ===
+// Multer config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadPath),
   filename: (req, file, cb) => {
@@ -38,7 +34,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// === WhatsApp Client ===
+// WhatsApp Client
 let qrImageBase64 = null;
 let isReady = false;
 
@@ -61,6 +57,7 @@ const client = new Client({
 client.on("qr", async (qr) => {
   console.log("🔁 Scan QR to login");
   qrImageBase64 = await qrcode.toDataURL(qr);
+  isReady = false;
 });
 
 client.on("ready", () => {
@@ -74,17 +71,19 @@ client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
 client.on("disconnected", (reason) => {
   console.warn("⚠️ Disconnected:", reason);
   isReady = false;
-  setTimeout(() => client.initialize(), 5000); // Auto-reconnect after 5s
+  setTimeout(() => client.initialize(), 5000);
 });
 
 client.initialize();
 
 // === API to get QR code ===
 app.get("/get-qr", (req, res) => {
-  res.json({ qr: qrImageBase64 || null });
+  if (qrImageBase64) {
+    res.json({ qr: qrImageBase64 });
+  } else {
+    res.json({ qr: null });
+  }
 });
-
-// === Logging function ===
 function logMessage(phone, message) {
   const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
   fs.appendFile(logFile, logEntry, (err) => {
@@ -92,7 +91,6 @@ function logMessage(phone, message) {
   });
 }
 
-// === Send helper ===
 async function sendMessageOrMedia(phone, message, media) {
   phone = phone.replace(/\D/g, "");
   if (!phone.startsWith("91")) phone = "91" + phone;
@@ -144,7 +142,7 @@ async function sendMessageOrMedia(phone, message, media) {
   return { skipped: false };
 }
 
-// === Single send endpoint ===
+// Single send
 app.post("/send-message", async (req, res) => {
   if (!isReady)
     return res.status(503).json({ error: "WhatsApp client not ready" });
@@ -165,7 +163,7 @@ app.post("/send-message", async (req, res) => {
   }
 });
 
-// === Bulk send endpoint ===
+// Bulk send
 app.post("/send-messages", async (req, res) => {
   if (!isReady)
     return res.status(503).json({ error: "WhatsApp client not ready" });
@@ -206,14 +204,14 @@ app.post("/send-messages", async (req, res) => {
   res.json({ results });
 });
 
-// === Download logs ===
+// Logs
 app.get("/download-log", (req, res) => {
   if (!fs.existsSync(logFile))
     return res.status(404).send("Log file not found");
   res.download(logFile, "whatsapp_success_log.txt");
 });
 
-// === Upload endpoint ===
+// File upload
 app.post("/upload-media", upload.single("file"), (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
   res.json({ url: `/uploads/${req.file.filename}` });
@@ -221,12 +219,10 @@ app.post("/upload-media", upload.single("file"), (req, res) => {
 
 app.use("/uploads", express.static(uploadPath));
 
-// === Fallback: serve index.html for any unknown route ===
 app.get(/.*/, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// === Start server ===
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () =>
   console.log(`🚀 Server running at http://localhost:${PORT}`)
