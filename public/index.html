@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>WhatsApp Bulk Sender</title>
   <meta name="color-scheme" content="light dark">
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- ✅ Add socket.io client -->
+  <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 
   <style>
     :root{
@@ -197,6 +200,16 @@
     <div class="footer">
       Tip: Use placeholders <span class="kbd">#StudentName#</span>, <span class="kbd">#AIR#</span>, <span class="kbd">#CollegeName#</span> in your message.<br/>
     </div>
+     <section class="card">
+        <h2>Login with WhatsApp</h2>
+        <div class="qr-wrap" id="qrWrap">
+          <img id="qrImg" src="" alt="QR will appear here">
+        </div>
+        <div id="loginStatus" class="muted" style="margin-top:8px;">Connecting...</div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn secondary" onclick="logout()">Logout</button>
+        </div>
+      </section>
     <br/>
   </div>
  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
