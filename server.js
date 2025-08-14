@@ -2,18 +2,21 @@ const fs = require("fs");
 const path = require("path");
 const mime = require("mime-types");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const qrcode = require("qrcode"); // <-- for browser QR
+const qrcode = require("qrcode");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 const multer = require("multer");
 
-const app = express();
+const app = express(); // ✅ moved up before app.use()
+
+// === Middleware ===
 app.use(cors());
 app.use(bodyParser.json());
 
-let qrImageBase64 = null; // store QR code as base64
+// === Serve static frontend ===
+app.use(express.static(path.join(__dirname, "public"))); // index.html will be here
 
 // === Setup directories ===
 const uploadPath = path.join(__dirname, "uploads");
@@ -36,6 +39,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // === WhatsApp Client ===
+let qrImageBase64 = null;
+
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: "bulk-sender" }),
   puppeteer: {
@@ -54,12 +59,12 @@ const client = new Client({
 
 client.on("qr", async (qr) => {
   console.log("🔁 Scan QR to login");
-  qrImageBase64 = await qrcode.toDataURL(qr); // store as base64 image
+  qrImageBase64 = await qrcode.toDataURL(qr);
 });
 
 client.on("ready", () => {
   console.log("✅ WhatsApp client ready!");
-  qrImageBase64 = null; // remove QR when logged in
+  qrImageBase64 = null;
 });
 
 client.on("auth_failure", (msg) => console.error("❌ Auth failure:", msg));
@@ -72,11 +77,7 @@ client.initialize();
 
 // === API to get QR code ===
 app.get("/get-qr", (req, res) => {
-  if (qrImageBase64) {
-    res.json({ qr: qrImageBase64 });
-  } else {
-    res.json({ qr: null });
-  }
+  res.json({ qr: qrImageBase64 || null });
 });
 
 // === Logging function ===
@@ -87,7 +88,7 @@ function logMessage(phone, message) {
   });
 }
 
-// === Sending functions ===
+// === Send helper ===
 async function sendMessageOrMedia(phone, message, media) {
   phone = phone.replace(/\D/g, "");
   if (!phone.startsWith("91")) phone = "91" + phone;
@@ -188,6 +189,11 @@ app.post("/upload-media", upload.single("file"), (req, res) => {
 });
 
 app.use("/uploads", express.static(uploadPath));
+
+// === Fallback: serve index.html for any unknown route ===
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 // === Start server ===
 const PORT = process.env.PORT || 3000;
