@@ -1,400 +1,507 @@
-const fs = require("fs");
-const path = require("path");
-const mime = require("mime-types");
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const qrcode = require("qrcode");
+require("dotenv").config();
 const express = require("express");
+const session = require("express-session");
+const FileStore = require("session-file-store")(session);
+const path = require("path");
+const fs = require("fs");
+const multer = require("multer");
+const { Client, LocalAuth } = require("whatsapp-web.js");
+const qrcode = require("qrcode");
+const xlsx = require("xlsx");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const axios = require("axios");
-const multer = require("multer");
 
 const app = express();
+const PORT = process.env.PORT || 3001;
+
+// Configure multer for file uploads
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+});
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+    credentials: true,
+  })
+);
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
-// Directories setup
-const uploadPath = path.join(__dirname, "uploads");
-const logPath = path.join(__dirname, "logs");
-const sessionPath = path.join(__dirname, ".wwebjs_auth");
+// Session configuration
+app.use(
+  session({
+    store: new FileStore({ path: "./sessions" }),
+    secret: process.env.SESSION_SECRET || "jitender@123",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false },
+  })
+);
 
-if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath);
-if (!fs.existsSync(logPath)) fs.mkdirSync(logPath);
+// Initialize WhatsApp clients
+const whatsappClients = {};
+const sseClients = {};
 
-const logFile = path.join(logPath, "success.log");
-
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadPath),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
-  },
-});
-const upload = multer({ storage });
-
-// WhatsApp Client
-let client = null;
-let clients = new Set();
-let currentQr = null;
-
-// Clean up old sessions
-function cleanupOldSessions() {
-  try {
-    if (fs.existsSync(sessionPath)) {
-      console.log("Cleaning up old session files...");
-      fs.rmSync(sessionPath, { recursive: true, force: true });
-      fs.mkdirSync(sessionPath, { recursive: true });
-    }
-  } catch (err) {
-    console.error("Session cleanup error:", err);
+// Helper functions
+function ensureDirectoryExists(directory) {
+  if (!fs.existsSync(directory)) {
+    fs.mkdirSync(directory, { recursive: true });
   }
 }
 
-// Initialize WhatsApp Client
-function initClient() {
-  if (client) {
-    console.log("Client already initialized");
-    return client;
+// Load templates from file
+function loadTemplates() {
+  ensureDirectoryExists("data");
+  try {
+    if (fs.existsSync("data/templates.json")) {
+      return JSON.parse(fs.readFileSync("data/templates.json", "utf-8"));
+    }
+  } catch (err) {
+    console.error("Error loading templates:", err);
+  }
+  return [];
+}
+
+// Save templates to file
+function saveTemplates(templates) {
+  ensureDirectoryExists("data");
+  fs.writeFileSync("data/templates.json", JSON.stringify(templates, null, 2));
+}
+
+// Get all accounts
+function getAccountsList() {
+  const accountsDir = path.join(__dirname, ".wwebjs_auth");
+  let accounts = ["default"]; // Always include default account
+
+  try {
+    if (fs.existsSync(accountsDir)) {
+      const files = fs.readdirSync(accountsDir);
+      accounts = [
+        "default",
+        ...files
+          .filter((file) => file.endsWith("-session.json"))
+          .map((file) => file.replace("-session.json", ""))
+          .filter((name) => name !== "default"),
+      ];
+    }
+  } catch (err) {
+    console.error("Error reading accounts:", err);
   }
 
-  cleanupOldSessions();
+  return [...new Set(accounts)];
+}
 
-  console.log("Initializing WhatsApp client...");
+// Initialize WhatsApp client for an account
+function initializeWhatsAppClient(accountId) {
+  if (whatsappClients[accountId]) {
+    return whatsappClients[accountId];
+  }
 
-  client = new Client({
-    authStrategy: new LocalAuth({
-      clientId: "bulk-sender",
-      dataPath: sessionPath,
-    }),
+  console.log(`Initializing WhatsApp client for account: ${accountId}`);
+
+  const client = new Client({
+    authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
       headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--disable-gpu",
-      ],
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     },
-    qrMaxRetries: 3,
-    takeoverOnConflict: true,
-    restartOnAuthFail: true,
   });
 
-  // Event handlers
-  client.on("qr", async (qr) => {
-    console.log("QR Code received");
-    
-    if (!qr || typeof qr !== "string") {
-      console.error("Invalid QR code received");
-      notifyClients({ event: "error", message: "Invalid QR code format" });
-      return;
-    }
+  whatsappClients[accountId] = client;
 
+  client.on("qr", async (qr) => {
+    console.log(`QR received for ${accountId}`);
     try {
-      const qrImage = await qrcode.toDataURL(qr, {
-        scale: 6,
-        errorCorrectionLevel: "M",
-        margin: 2,
-        color: {
-          dark: "#25D366",
-          light: "#12142a"
-        }
-      });
-      
-      currentQr = qr;
-      notifyClients({ event: "qr", qr: qrImage });
+      const qrImage = await qrcode.toDataURL(qr);
+      broadcastEvent(accountId, "qr", { qr: qrImage });
     } catch (err) {
-      console.error("QR generation failed:", err);
-      notifyClients({
-        event: "error",
-        message: "QR generation failed. Please try refreshing.",
+      console.error("Error generating QR code:", err);
+      broadcastEvent(accountId, "error", {
+        message: "Failed to generate QR code",
       });
     }
   });
 
   client.on("ready", () => {
-    console.log("WhatsApp client ready!");
-    currentQr = null;
-    notifyClients({ event: "ready" });
+    console.log(`Client ${accountId} is ready!`);
+    broadcastEvent(accountId, "ready", { message: "Client is ready" });
   });
 
   client.on("authenticated", () => {
-    console.log("Authenticated successfully");
-    notifyClients({ event: "status", message: "Authenticated successfully" });
+    console.log(`Client ${accountId} authenticated`);
+    broadcastEvent(accountId, "authenticated", {
+      message: "Client authenticated",
+    });
   });
 
   client.on("auth_failure", (msg) => {
-    console.error("Auth failure:", msg);
-    notifyClients({ event: "auth_failure", message: msg });
+    console.log(`Client ${accountId} auth failure`, msg);
+    broadcastEvent(accountId, "auth_failure", { message: "Auth failure", msg });
   });
 
   client.on("disconnected", (reason) => {
-    console.warn("Disconnected:", reason);
-    notifyClients({ event: "disconnected", reason });
-    setTimeout(() => {
-      client = null;
-      initClient();
-    }, 2000);
+    console.log(`Client ${accountId} disconnected`, reason);
+    broadcastEvent(accountId, "disconnected", { reason });
+    delete whatsappClients[accountId];
   });
 
   client.on("loading_screen", (percent, message) => {
-    console.log(`Loading: ${percent}% ${message || ""}`);
-    notifyClients({
-      event: "status",
-      message: `Loading: ${percent}% ${message || ""}`,
-    });
+    broadcastEvent(accountId, "loading", { percent, message });
+  });
+
+  client.on("message", (msg) => {
+    console.log("Received message:", msg.body);
+  });
+
+  client.on("error", (err) => {
+    console.error(`Client error for ${accountId}:`, err);
+    broadcastEvent(accountId, "error", { message: err.message });
   });
 
   client.initialize().catch((err) => {
-    console.error("Initialization error:", err);
-    notifyClients({
-      event: "error",
-      message: "Failed to initialize WhatsApp client",
-    });
+    console.error(`Failed to initialize client for ${accountId}:`, err);
   });
 
   return client;
 }
 
-// SSE for real-time events
-function notifyClients(data) {
-  const message = `event: ${data.event}\ndata: ${JSON.stringify(data)}\n\n`;
-  clients.forEach((client) => {
+// Broadcast event to all SSE clients for an account
+function broadcastEvent(accountId, type, data) {
+  if (!sseClients[accountId]) return;
+
+  sseClients[accountId].forEach((client) => {
     try {
-      client.res.write(message);
+      client.res.write(`event: ${type}\n`);
+      client.res.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (err) {
       console.error("Error sending SSE:", err);
-      clients.delete(client);
     }
   });
 }
 
 // Routes
-app.get("/events", (req, res) => {
+
+// Get all accounts
+app.get("/api/accounts", (req, res) => {
+  const accounts = getAccountsList();
+  res.json({ success: true, accounts });
+});
+
+// Create new account
+app.post("/api/accounts", (req, res) => {
+  const { accountId } = req.body;
+
+  if (!accountId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID is required" });
+  }
+
+  // Initialize the client which will create the session
+  initializeWhatsAppClient(accountId);
+
+  // Get updated accounts list
+  const accounts = getAccountsList();
+
+  res.json({
+    success: true,
+    message: `Account ${accountId} initialized`,
+    accounts,
+  });
+});
+
+// Activate account
+app.post("/api/accounts/activate", (req, res) => {
+  const { accountId } = req.body;
+
+  if (!accountId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID is required" });
+  }
+
+  // Initialize the client if not already done
+  initializeWhatsAppClient(accountId);
+
+  res.json({ success: true, message: `Account ${accountId} activated` });
+});
+
+// Logout account
+app.post("/api/accounts/logout", async (req, res) => {
+  const { accountId } = req.body;
+
+  if (!accountId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID is required" });
+  }
+
+  if (whatsappClients[accountId]) {
+    try {
+      await whatsappClients[accountId].destroy();
+      delete whatsappClients[accountId];
+
+      // Remove session file
+      const sessionFile = path.join(
+        __dirname,
+        ".wwebjs_auth",
+        `${accountId}-session.json`
+      );
+      if (fs.existsSync(sessionFile)) {
+        fs.unlinkSync(sessionFile);
+      }
+
+      res.json({ success: true, message: `Account ${accountId} logged out` });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  } else {
+    res.json({ success: true, message: `No active session for ${accountId}` });
+  }
+});
+
+// SSE endpoint for account events
+app.get("/api/accounts/:accountId/events", (req, res) => {
+  const accountId = req.params.accountId;
+
+  // Set headers for SSE
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-  res.flushHeaders();
 
+  // Create a new client for this connection
   const clientId = Date.now();
-  const newClient = {
+  if (!sseClients[accountId]) {
+    sseClients[accountId] = [];
+  }
+
+  sseClients[accountId].push({
     id: clientId,
     res,
-  };
+  });
 
-  clients.add(newClient);
+  // Send initial connected event
+  res.write(`event: connected\n`);
+  res.write(`data: ${JSON.stringify({ message: "Connected to SSE" })}\n\n`);
 
-  // Send current QR if available
-  if (currentQr) {
-    qrcode.toDataURL(currentQr, { scale: 6 })
-      .then((qrImage) => {
-        res.write(`event: qr\ndata: ${JSON.stringify({ qr: qrImage })}\n\n`);
-      })
-      .catch((err) => {
-        console.error("QR regen error:", err);
-        res.write(`event: error\ndata: ${JSON.stringify({
-          message: "Failed to generate QR code",
-        })}\n\n`);
-      });
-  }
+  // Initialize the client if not already done
+  initializeWhatsAppClient(accountId);
 
+  // Handle client disconnect
   req.on("close", () => {
-    clients.delete(newClient);
+    console.log(`Client ${clientId} disconnected from SSE`);
+    sseClients[accountId] = sseClients[accountId].filter(
+      (client) => client.id !== clientId
+    );
   });
 });
 
-app.get("/get-qr", async (req, res) => {
-  try {
-    if (currentQr) {
-      const qrImage = await qrcode.toDataURL(currentQr, { scale: 6 });
-      res.json({ qr: qrImage, status: "qr_generated" });
-    } else if (client && client.info) {
-      res.json({ status: "already_authenticated" });
-    } else {
-      res.json({ status: "waiting_for_qr" });
-    }
-  } catch (err) {
-    console.error("QR generation error:", err);
-    res.status(500).json({ error: "Failed to generate QR code" });
-  }
-});
+// Send message
+app.post("/api/send-message", async (req, res) => {
+  let { phone, message, media, accountId = "default" } = req.body;
 
-app.post("/refresh-qr", (req, res) => {
-  if (client) {
-    client.destroy().then(() => {
-      client = null;
-      initClient();
-      res.json({ success: true });
+  // Ensure phone is a string
+  phone = String(phone || "");
+
+  if (!phone) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Phone number is required" });
+  }
+
+  if (!message && !media?.url) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Either message or media is required" });
+  }
+
+  const client = whatsappClients[accountId];
+  if (!client) {
+    return res.status(400).json({
+      success: false,
+      error: `WhatsApp client for account ${accountId} not initialized`,
     });
-  } else {
-    initClient();
-    res.json({ success: true });
   }
-});
-
-app.post("/logout", async (req, res) => {
-  try {
-    if (client) {
-      await client.logout();
-      await client.destroy();
-      client = null;
-
-      cleanupOldSessions();
-      initClient();
-    }
-    res.json({ success: true });
-  } catch (err) {
-    console.error("Logout error:", err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Debug endpoint
-app.get("/debug-qr", async (req, res) => {
-  try {
-    const testQR = await qrcode.toDataURL("test-qr-code", { scale: 6 });
-    res.send(`<img src="${testQR}">`);
-  } catch (err) {
-    res.status(500).send(`QR Error: ${err.message}`);
-  }
-});
-
-// Message sending function
-async function sendMessageOrMedia(phone, message, media) {
-  phone = phone.replace(/\D/g, "");
-  const cc = phone.length <= 10 ? "91" : "";
-  if (cc && !phone.startsWith(cc)) phone = cc + phone;
 
   try {
-    const numberDetails = await client.getNumberId(phone);
-    if (!numberDetails) {
-      logMessage(phone, "Not on WhatsApp");
-      return { skipped: true, reason: "Not on WhatsApp" };
+    // Format phone number (remove any non-digit characters)
+    let formattedPhone = phone.replace(/\D/g, "");
+
+    // Validate phone number
+    if (formattedPhone.length < 10) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid phone number" });
     }
 
-    const chatId = numberDetails._serialized;
-    let mediaData;
+    // Add country code if missing (example for Brazil)
+    if (!formattedPhone.startsWith("55") && formattedPhone.length >= 10) {
+      formattedPhone = "55" + formattedPhone;
+    }
+
+    formattedPhone = formattedPhone + "@c.us";
+
+    let response;
 
     if (media?.url) {
-      if (media.url.startsWith("http")) {
-        const response = await axios.get(media.url, {
-          responseType: "arraybuffer",
-          timeout: 10000,
+      // Send media message
+      const mediaPath = path.join(__dirname, media.url);
+      if (!fs.existsSync(mediaPath)) {
+        return res.status(400).json({
+          success: false,
+          error: "Media file not found",
         });
-        const mimeType = response.headers["content-type"] || "application/octet-stream";
-        const fileName = path.basename(media.url.split("?")[0]);
-        mediaData = new MessageMedia(
-          mimeType,
-          Buffer.from(response.data).toString("base64"),
-          fileName
-        );
-      } else {
-        const localPath = path.join(__dirname, media.url.replace(/^\/+/, ""));
-        if (!fs.existsSync(localPath)) throw new Error("Media not found");
-        const mimeType = mime.lookup(localPath) || "application/octet-stream";
-        const buffer = fs.readFileSync(localPath);
-        mediaData = new MessageMedia(
-          mimeType,
-          buffer.toString("base64"),
-          path.basename(localPath)
-        );
       }
-    }
-
-    if (mediaData) {
-      await client.sendMessage(chatId, mediaData, {
-        caption: media.caption || message,
+      response = await client.sendMessage(formattedPhone, {
+        media: mediaPath,
+        caption: message || media.caption || "",
       });
-      logMessage(phone, `[MEDIA] ${media.caption || message}`);
     } else {
-      await client.sendMessage(chatId, message);
-      logMessage(phone, message);
+      // Send text message
+      response = await client.sendMessage(formattedPhone, message);
     }
-    return { skipped: false };
+
+    res.json({ success: true, message: "Message sent", response });
   } catch (err) {
-    console.error("Send message error:", err);
-    return { skipped: true, reason: err.message };
-  }
-}
-
-// Logging function
-function logMessage(phone, message) {
-  const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
-  fs.appendFile(logFile, logEntry, (err) => {
-    if (err) console.error("Error writing log:", err);
-  });
-  notifyClients({
-    event: "log",
-    message: `Message log: ${phone} - ${message}`,
-    timestamp: Date.now(),
-  });
-}
-
-// API endpoints
-app.post("/send-message", async (req, res) => {
-  if (!client || !client.info) {
-    return res.status(503).json({ error: "WhatsApp client not ready" });
-  }
-
-  try {
-    const result = await sendMessageOrMedia(
-      req.body.phone,
-      req.body.message,
-      req.body.media
-    );
-    if (result.skipped) {
-      return res.json({ success: false, message: result.reason });
-    }
-    res.json({ success: true, message: `Message sent to ${req.body.phone}` });
-  } catch (err) {
-    console.error("Error:", err.message);
+    console.error("Error sending message:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.get("/download-log", (req, res) => {
-  if (!fs.existsSync(logFile))
-    return res.status(404).send("Log file not found");
-  res.download(logFile, "whatsapp_success_log.txt");
+// File upload
+app.post("/api/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ success: false, error: "No file uploaded" });
+  }
+
+  try {
+    // Move the file from temp uploads to a permanent location
+    const fileExt = path.extname(req.file.originalname);
+    const newFileName = `${req.file.filename}${fileExt}`;
+    const newPath = path.join(__dirname, "uploads", newFileName);
+
+    fs.renameSync(req.file.path, newPath);
+
+    res.json({
+      success: true,
+      url: `/uploads/${newFileName}`,
+      originalName: req.file.originalname,
+    });
+  } catch (err) {
+    console.error("Error uploading file:", err);
+    res.status(500).json({ success: false, error: "Failed to upload file" });
+  }
 });
 
-app.post("/upload-media", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  res.json({ url: `/uploads/${req.file.filename}` });
+// Template management routes
+
+// Get all templates
+app.get("/api/templates", (req, res) => {
+  const templates = loadTemplates();
+  res.json({ success: true, templates });
 });
 
-app.use("/uploads", express.static(uploadPath));
+// Create new template
+app.post("/api/templates", (req, res) => {
+  const { name, content } = req.body;
 
-app.get(/.*/, (req, res) => {
+  if (!name || !content) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Both name and content are required" });
+  }
+
+  const templates = loadTemplates();
+  const newTemplate = {
+    id: Date.now().toString(),
+    name,
+    content,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  templates.push(newTemplate);
+  saveTemplates(templates);
+
+  res.json({ success: true, template: newTemplate });
+});
+
+// Update template
+app.put("/api/templates/:id", (req, res) => {
+  const { id } = req.params;
+  const { name, content } = req.body;
+
+  if (!name || !content) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Both name and content are required" });
+  }
+
+  const templates = loadTemplates();
+  const templateIndex = templates.findIndex((t) => t.id === id);
+
+  if (templateIndex === -1) {
+    return res
+      .status(404)
+      .json({ success: false, error: "Template not found" });
+  }
+
+  templates[templateIndex] = {
+    ...templates[templateIndex],
+    name,
+    content,
+    updatedAt: new Date().toISOString(),
+  };
+
+  saveTemplates(templates);
+
+  res.json({ success: true, template: templates[templateIndex] });
+});
+
+// Delete template
+app.delete("/api/templates/:id", (req, res) => {
+  const { id } = req.params;
+
+  const templates = loadTemplates();
+  const filteredTemplates = templates.filter((t) => t.id !== id);
+
+  if (filteredTemplates.length === templates.length) {
+    return res
+      .status(404)
+      .json({ success: false, error: "Template not found" });
+  }
+
+  saveTemplates(filteredTemplates);
+
+  res.json({ success: true, message: "Template deleted" });
+});
+
+// Serve frontend
+app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-// Initialize client
-initClient();
-
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-  notifyClients({
-    event: "log",
-    message: `Server started on port ${PORT}`,
-    timestamp: Date.now(),
-  });
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error("Server error:", err);
+  res.status(500).json({ success: false, error: "Internal server error" });
 });
 
-// Process cleanup
-process.on("SIGINT", async () => {
-  console.log("Shutting down gracefully...");
-  if (client) {
-    await client.destroy();
-  }
-  process.exit();
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
+  // Create required directories
+  ensureDirectoryExists("uploads");
+  ensureDirectoryExists("data");
+  ensureDirectoryExists(".wwebjs_auth");
+  ensureDirectoryExists("sessions");
+
+  // Initialize default client
+  initializeWhatsAppClient("default");
 });
