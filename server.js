@@ -40,9 +40,9 @@ const upload = multer({ storage });
 // WhatsApp Client
 let client = null;
 let clients = new Set();
-let qrGenerated = false;
+let currentQr = null;
 
-// Initialize WhatsApp Client with optimized settings
+// Initialize WhatsApp Client
 function initClient() {
     if (client) return client;
 
@@ -62,37 +62,30 @@ function initClient() {
                 "--disable-accelerated-2d-canvas",
                 "--no-first-run",
                 "--no-zygote",
-                "--disable-gpu",
-                "--single-process"
-            ],
-            executablePath: process.env.CHROME_PATH || undefined
+                "--disable-gpu"
+            ]
         },
         qrMaxRetries: 3,
         takeoverOnConflict: true,
         restartOnAuthFail: true
     });
 
-    // Optimized QR code generation
     client.on("qr", async (qr) => {
-        console.log("QR Code generated");
-        qrGenerated = true;
+        console.log("QR Code received");
         try {
-            const qrImage = await qrcode.toDataURL(qr, { scale: 10 });
+            currentQr = qr;
+            const qrImage = await qrcode.toDataURL(qr, { scale: 8 });
             notifyClients({ event: "qr", qr: qrImage });
         } catch (err) {
             console.error("QR generation error:", err);
+            notifyClients({ event: "error", message: "Failed to generate QR code" });
         }
     });
 
     client.on("ready", () => {
         console.log("WhatsApp client ready!");
-        qrGenerated = false;
+        currentQr = null;
         notifyClients({ event: "ready" });
-    });
-
-    client.on("authenticated", () => {
-        console.log("Authenticated!");
-        notifyClients({ event: "authenticated" });
     });
 
     client.on("auth_failure", (msg) => {
@@ -108,26 +101,10 @@ function initClient() {
         }, 2000);
     });
 
-    client.on("loading_screen", (percent, message) => {
-        console.log(`Loading: ${percent}% ${message || ""}`);
-        notifyClients({ 
-            event: "log", 
-            message: `Loading: ${percent}% ${message || ""}`,
-            timestamp: Date.now()
-        });
+    client.initialize().catch(err => {
+        console.error("Initialization error:", err);
+        notifyClients({ event: "error", message: "Failed to initialize WhatsApp client" });
     });
-
-    // Start with a timeout to prevent hanging
-    setTimeout(() => {
-        client.initialize().catch(err => {
-            console.error("Initialization error:", err);
-            notifyClients({ 
-                event: "log", 
-                message: `Initialization error: ${err.message}`,
-                timestamp: Date.now()
-            });
-        });
-    }, 500);
 
     return client;
 }
@@ -160,21 +137,37 @@ app.get("/events", (req, res) => {
     
     clients.add(newClient);
     
-    // Send initial status if available
-    if (client && client.info) {
-        res.write(`event: ready\ndata: {}\n\n`);
-    } else if (qrGenerated) {
-        // If QR was already generated before this client connected
-        qrcode.toDataURL(client.qrCode, { scale: 10 })
+    // Send current QR if available
+    if (currentQr) {
+        qrcode.toDataURL(currentQr, { scale: 8 })
             .then(qrImage => {
                 res.write(`event: qr\ndata: ${JSON.stringify({ qr: qrImage })}\n\n`);
             })
-            .catch(err => console.error("QR regen error:", err));
+            .catch(err => {
+                console.error("QR regen error:", err);
+                res.write(`event: error\ndata: ${JSON.stringify({ message: "Failed to generate QR code" })}\n\n`);
+            });
     }
     
     req.on('close', () => {
         clients.delete(newClient);
     });
+});
+
+app.get("/get-qr", async (req, res) => {
+    try {
+        if (currentQr) {
+            const qrImage = await qrcode.toDataURL(currentQr, { scale: 8 });
+            res.json({ qr: qrImage, status: "qr_generated" });
+        } else if (client && client.info) {
+            res.json({ status: "already_authenticated" });
+        } else {
+            res.json({ status: "waiting_for_qr" });
+        }
+    } catch (err) {
+        console.error("QR generation error:", err);
+        res.status(500).json({ error: "Failed to generate QR code" });
+    }
 });
 
 app.post("/refresh-qr", (req, res) => {
