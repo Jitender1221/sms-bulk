@@ -99,7 +99,14 @@ client.on('qr', async (qr) => {
         });
     }
 });
-
+app.get('/debug-qr', async (req, res) => {
+    try {
+        const testQR = await qrcode.toDataURL('test-qr-code', { scale: 6 });
+        res.send(`<img src="${testQR}">`);
+    } catch (err) {
+        res.status(500).send(`QR Error: ${err.message}`);
+    }
+});
     
     client.on("ready", () => {
         console.log("WhatsApp client ready!");
