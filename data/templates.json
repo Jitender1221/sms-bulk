@@ -1,0 +1,9 @@
+[
+  {
+    "id": "1755263106055",
+    "name": "Test",
+    "content": "Hello {{name}}, your order {{date}} is ready!",
+    "createdAt": "2025-08-15T13:05:06.055Z",
+    "updatedAt": "2025-08-15T13:05:17.928Z"
+  }
+]
