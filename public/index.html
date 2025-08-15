@@ -239,49 +239,35 @@
     let eventSource = null;
 
     // Initialize EventSource for real-time updates
-    function initEventSource() {
-        if (eventSource) eventSource.close();
-        
-        eventSource = new EventSource(`${API_BASE}/events`);
-        
-        eventSource.addEventListener('qr', (e) => {
-            const data = JSON.parse(e.data);
-            els.qrCode.innerHTML = `<img src="${data.qr}" alt="WhatsApp QR Code">`;
-            els.statusText.textContent = "Scan to login";
-            isConnected = false;
-        });
-        
-        eventSource.addEventListener('ready', () => {
-            els.qrCode.innerHTML = `<b class="ok">✅ Logged in to WhatsApp</b>`;
-            els.statusText.textContent = "Ready";
-            isConnected = true;
-        });
-        
-        eventSource.addEventListener('auth_failure', (e) => {
-            const data = JSON.parse(e.data);
-            els.qrCode.innerHTML = `<b class="bad">❌ Auth failed</b>`;
-            els.statusText.textContent = "Auth failed";
-            isConnected = false;
-            console.error("Auth failure:", data.message);
-        });
-        
-        eventSource.addEventListener('disconnected', (e) => {
-            const data = JSON.parse(e.data);
-            els.qrCode.innerHTML = `<div class="spinner"></div> Reconnecting...`;
-            els.statusText.textContent = "Disconnected";
-            isConnected = false;
-            console.warn("Disconnected:", data.reason);
-        });
-        
-        eventSource.addEventListener('log', (e) => {
-            const data = JSON.parse(e.data);
-            addBackendLog(data.message, data.timestamp);
-        });
-        
-        eventSource.onerror = () => {
-            setTimeout(initEventSource, 1000);
-        };
-    }
+  // In your frontend code
+function initEventSource() {
+    if (eventSource) eventSource.close();
+    
+    eventSource = new EventSource(`${API_BASE}/events`);
+    
+    eventSource.addEventListener('qr', (e) => {
+        const data = JSON.parse(e.data);
+        els.qrCode.innerHTML = `<img src="${data.qr}" alt="WhatsApp QR Code">`;
+        els.statusText.textContent = "Scan to login";
+    });
+    
+    eventSource.addEventListener('error', (e) => {
+        const data = JSON.parse(e.data);
+        els.qrCode.innerHTML = `<b class="bad">❌ ${data.message}</b>`;
+        els.statusText.textContent = "Error";
+        console.error("Server error:", data.message);
+    });
+    
+    eventSource.addEventListener('status', (e) => {
+        const data = JSON.parse(e.data);
+        addBackendLog(data.message, Date.now());
+    });
+    
+    eventSource.onerror = () => {
+        els.qrCode.innerHTML = `<b class="bad">❌ Connection lost. Reconnecting...</b>`;
+        setTimeout(initEventSource, 2000);
+    };
+}
 
     function addBackendLog(message, timestamp) {
         const time = new Date(timestamp).toLocaleTimeString();
