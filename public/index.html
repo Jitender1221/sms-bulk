@@ -1,135 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WhatsApp Bulk Sender</title>
-    <meta name="color-scheme" content="light dark">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-    :root {
-        --bg: #0f1221;
-        --bg-soft: #12142a;
-        --card: #161a36;
-        --card-2: #1b2046;
-        --text: #e9ecff;
-        --muted: #a9b0d6;
-        --brand: #25D366;
-        --brand-d: #1da851;
-        --accent: #7aa2ff;
-        --danger: #ff5d7a;
-        --border: rgba(255, 255, 255, .08);
-        --shadow: 0 10px 25px rgba(0, 0, 0, .35);
-        --radius: 16px;
-    }
-    * { box-sizing: border-box }
-    html, body { height: 100% }
-    body {
-        margin: 0;
-        font: 15px/1.45 system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-        color: var(--text);
-        background:
-            radial-gradient(1200px 600px at 0% -10%, #2331a820 0%, transparent 70%),
-            radial-gradient(1000px 800px at 120% 120%, #25D36622 0%, transparent 70%),
-            var(--bg);
-        padding: 24px;
-    }
-    .container { max-width: 1100px; margin: 0 auto; }
-    header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 20px;
-    }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .logo {
-        width: 42px; height: 42px; display: grid; place-items: center;
-        border-radius: 12px; background: linear-gradient(145deg, var(--brand), #38f08d);
-        color: #0b2e17; font-weight: 900; box-shadow: var(--shadow);
-    }
-    h1 { font-size: 22px; margin: 0 }
-    .muted { color: var(--muted); font-size: 13px }
-    .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr } }
-    .card {
-        background: linear-gradient(180deg, var(--card), var(--card-2));
-        border: 1px solid var(--border); border-radius: var(--radius);
-        box-shadow: var(--shadow); padding: 18px;
-    }
-    .card h2 { margin: 0 0 10px 0; font-size: 18px; font-weight: 700; }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap }
-    label { display: block; margin: 12px 0 6px 0; font-weight: 600 }
-    input[type="file"], input[type="number"], textarea, input[type="text"] {
-        width: 100%; padding: 12px 12px; border-radius: 12px;
-        border: 1px solid var(--border); background: #0e1130; color: var(--text);
-        outline: none;
-    }
-    textarea { min-height: 140px; resize: vertical }
-    .hint { font-size: 12px; color: var(--muted); margin-top: 6px }
-    .btn {
-        appearance: none; border: none; border-radius: 12px; padding: 12px 16px;
-        background: var(--brand); color: #062314; font-weight: 700; cursor: pointer;
-        box-shadow: var(--shadow); transition: .15s transform ease, .2s background ease;
-    }
-    .btn:hover { background: var(--brand-d); transform: translateY(-1px) }
-    .btn.secondary { background: #2a2f5a; color: #e6e9ff }
-    .btn.ghost { background: transparent; border: 1px dashed var(--border); color: var(--text) }
-    .btn.danger { background: var(--danger); color: white }
-    .btn.icon { display: flex; align-items: center; gap: 8px }
-    .chip {
-        display: inline-flex; align-items: center; gap: 8px;
-        padding: 6px 10px; border-radius: 999px; background: #1d2146;
-        border: 1px solid var(--border); color: var(--muted); font-size: 12px;
-    }
-    .ok { color: #4cf3a0 }
-    .bad { color: var(--danger) }
-    .console {
-        background: #0a0d27; border: 1px solid var(--border);
-        border-radius: 14px; padding: 12px; min-height: 180px; max-height: 300px;
-        overflow: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, 
-        Consolas, "Liberation Mono", "Courier New", monospace; white-space: pre-wrap;
-    }
-    .progress {
-        height: 10px; background: #0f1333; border-radius: 999px;
-        border: 1px solid var(--border); overflow: hidden;
-    }
-    .progress > div { height: 100%; width: 0; background: linear-gradient(90deg, #38f08d, #7aa2ff) }
-    .qr-wrap {
-        display: grid; place-items: center; min-height: 260px;
-        border: 1px dashed var(--border); border-radius: 14px; background: #0b1033;
-    }
-    .qr-wrap img { max-width: 220px; border-radius: 12px; box-shadow: var(--shadow) }
-    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px }
-    @media (max-width:600px) { .two-col { grid-template-columns: 1fr } }
-    .pill {
-        display: inline-block; padding: 6px 10px; border-radius: 10px;
-        background: #0f143a; color: var(--muted); border: 1px solid var(--border); font-size: 12px
-    }
-    .kbd {
-        padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border);
-        background: #0c1033; font: 12px ui-monospace
-    }
-    .footer { margin-top: 16px; color: var(--muted); font-size: 12px; text-align: center }
-    .sep { height: 1px; background: var(--border); margin: 12px 0 }
-    .backend-log {
-        background: #0a0d27; border: 1px solid var(--border); border-radius: 14px;
-        padding: 12px; margin-top: 12px; max-height: 200px; overflow-y: auto;
-        font-family: ui-monospace, monospace; font-size: 13px;
-    }
-    .log-entry { margin-bottom: 4px; }
-    .log-time { color: var(--muted); margin-right: 8px; }
-    .spinner {
-        width: 24px;
-        height: 24px;
-        border: 3px solid rgba(255,255,255,0.3);
-        border-radius: 50%;
-        border-top-color: var(--brand);
-        animation: spin 1s ease-in-out infinite;
-    }
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
+        :root {
+            --bg: #0f1221;
+            --bg-soft: #12142a;
+            --card: #161a36;
+            --card-2: #1b2046;
+            --text: #e9ecff;
+            --muted: #a9b0d6;
+            --brand: #25D366;
+            --brand-d: #1da851;
+            --accent: #7aa2ff;
+            --danger: #ff5d7a;
+            --border: rgba(255, 255, 255, 0.08);
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            --radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            gap: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(145deg, var(--brand), #38f08d);
+            color: #062314;
+            font-weight: 900;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+
+        h1 {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: linear-gradient(180deg, var(--card), var(--card-2));
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 8px;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            background: #0e1130;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            outline: none;
+        }
+
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 12px 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .btn-primary {
+            background: var(--brand);
+            color: #062314;
+        }
+
+        .btn-primary:hover {
+            background: var(--brand-d);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #2a2f5a;
+            color: var(--text);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+            background: #0b1033;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .qr-image {
+            max-width: 220px;
+            border-radius: 12px;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: #1d2146;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .status-connected {
+            color: #4cf3a0;
+        }
+
+        .status-error {
+            color: var(--danger);
+        }
+
+        .console {
+            background: #0a0d27;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            min-height: 180px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+            margin-top: 16px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: #0f1333;
+            border-radius: 999px;
+            margin: 16px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #38f08d, #7aa2ff);
+            transition: width 0.3s ease;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--brand);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .backend-log {
+            background: #0a0d27;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px;
+            margin-top: 16px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .log-time {
+            color: var(--muted);
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -139,311 +265,327 @@
                 <div class="logo">WA</div>
                 <div>
                     <h1>WhatsApp Bulk Sender</h1>
-                    <div class="muted">Send personalized messages from an Excel sheet</div>
+                    <div class="muted">Send personalized messages in bulk</div>
                 </div>
             </div>
-            <div class="chip" id="connChip">Status: <span id="statusText">Connecting...</span></div>
+            <div class="status-chip" id="statusChip">
+                <span id="statusText">Connecting...</span>
+            </div>
         </header>
 
         <div class="grid">
-            <!-- Left: Bulk sender -->
-            <section class="card">
+            <!-- Left Column: Bulk Sender -->
+            <div class="card">
                 <h2>Bulk Message</h2>
-                <label>Upload Excel (.xlsx or .xls)</label>
-                <div class="row">
-                    <input type="file" id="excelFile" accept=".xlsx,.xls" />
-                    <button class="btn ghost" id="downloadTemplate">Download Template</button>
+                
+                <label>Upload Excel File (.xlsx, .xls)</label>
+                <input type="file" id="excelFile" accept=".xlsx,.xls">
+                <div class="muted" style="margin-top: 8px;">
+                    Required columns: <code>Phone</code>, <code>Name</code>, <code>Message</code>
                 </div>
-                <div class="hint">Expected columns: <span class="pill">Phone</span> <span class="pill">Name</span> <span class="pill">Details</span></div>
-
-                <label>Message (supports placeholders)</label>
-                <textarea id="messageInput" placeholder="Hi #Name#, your details: #Details#"></textarea>
-                <div class="two-col">
+                
+                <label>Message Template</label>
+                <textarea id="messageInput" placeholder="Hi #Name#, your message is: #Message#"></textarea>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
                     <div>
                         <label>Delay (seconds)</label>
-                        <input type="number" id="delay" value="1" min="0.1" step="0.1" />
+                        <input type="number" id="delay" value="1" min="0.1" step="0.1">
                     </div>
                     <div>
                         <label>Country Code</label>
-                        <input type="text" id="countryCode" value="91" />
-                        <div class="hint">No "+". Example: <span class="kbd">91</span> for India.</div>
+                        <input type="text" id="countryCode" value="91">
                     </div>
                 </div>
-
-                <div class="row" style="margin-top:8px">
-                    <button class="btn icon" id="sendBtn">
+                
+                <div style="display: flex; gap: 12px; margin-top: 20px;">
+                    <button class="btn btn-primary" id="sendBtn">
                         <span>📤</span> Send Messages
                     </button>
-                    <button class="btn secondary icon" id="downloadLogBtn">
+                    <button class="btn btn-secondary" id="downloadLogBtn">
                         <span>📥</span> Download Log
                     </button>
                 </div>
-
-                <div class="sep"></div>
-
-                <div class="progress" aria-label="progress">
-                    <div id="bar"></div>
-                </div>
-
-                <div class="console" id="status" aria-live="polite"></div>
-            </section>
-
-            <!-- Right: QR & session -->
-            <section class="card">
-                <h2>WhatsApp Session</h2>
-                <div class="qr-wrap" id="qrWrap">
-                    <div id="qrCode"><div class="spinner"></div> Generating QR Code...</div>
-                </div>
-                <div class="row" style="margin-top:10px; justify-content: space-between;">
-                    <button class="btn secondary" id="refreshQR">Refresh QR</button>
-                    <button class="btn danger" id="logoutBtn">Logout</button>
-                </div>
-                <div class="hint" style="margin-top:8px">
-                    Open WhatsApp → <b>Linked devices</b> → <b>Link a device</b> → Scan the QR code.
+                
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar"></div>
                 </div>
                 
-                <div style="margin-top: 16px;">
+                <div class="console" id="consoleOutput"></div>
+            </div>
+
+            <!-- Right Column: WhatsApp Session -->
+            <div class="card">
+                <h2>WhatsApp Session</h2>
+                
+                <div class="qr-container" id="qrContainer">
+                    <div id="qrCode">
+                        <div class="spinner"></div>
+                        <div style="margin-top: 12px;">Generating QR code...</div>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; gap: 12px;">
+                    <button class="btn btn-secondary" id="refreshBtn">
+                        Refresh QR
+                    </button>
+                    <button class="btn btn-danger" id="logoutBtn">
+                        Logout
+                    </button>
+                </div>
+                
+                <div class="muted" style="margin-top: 12px;">
+                    Open WhatsApp → Linked Devices → Link a Device → Scan QR Code
+                </div>
+                
+                <div style="margin-top: 20px;">
                     <h3>Backend Process</h3>
                     <div class="backend-log" id="backendLog"></div>
                 </div>
-            </section>
-        </div>
-
-        <div class="footer">
-            Tip: Use placeholders like <span class="kbd">#Name#</span> and <span class="kbd">#Details#</span> in your message.
+            </div>
         </div>
     </div>
 
     <script>
-    const API_BASE = window.location.origin;
-    const els = {
-        qrWrap: document.getElementById('qrWrap'),
-        qrCode: document.getElementById('qrCode'),
-        status: document.getElementById('status'),
-        bar: document.getElementById('bar'),
-        statusText: document.getElementById('statusText'),
-        sendBtn: document.getElementById('sendBtn'),
-        downloadLogBtn: document.getElementById('downloadLogBtn'),
-        excelFile: document.getElementById('excelFile'),
-        messageInput: document.getElementById('messageInput'),
-        delay: document.getElementById('delay'),
-        countryCode: document.getElementById('countryCode'),
-        refreshQR: document.getElementById('refreshQR'),
-        logoutBtn: document.getElementById('logoutBtn'),
-        downloadTemplate: document.getElementById('downloadTemplate'),
-        backendLog: document.getElementById('backendLog'),
-    };
+        // DOM Elements
+        const elements = {
+            qrContainer: document.getElementById('qrContainer'),
+            qrCode: document.getElementById('qrCode'),
+            consoleOutput: document.getElementById('consoleOutput'),
+            progressBar: document.getElementById('progressBar'),
+            statusChip: document.getElementById('statusChip'),
+            statusText: document.getElementById('statusText'),
+            sendBtn: document.getElementById('sendBtn'),
+            refreshBtn: document.getElementById('refreshBtn'),
+            logoutBtn: document.getElementById('logoutBtn'),
+            downloadLogBtn: document.getElementById('downloadLogBtn'),
+            excelFile: document.getElementById('excelFile'),
+            messageInput: document.getElementById('messageInput'),
+            delay: document.getElementById('delay'),
+            countryCode: document.getElementById('countryCode'),
+            backendLog: document.getElementById('backendLog')
+        };
 
-    // Connection status
-    let isConnected = false;
-    let eventSource = null;
+        // State
+        let isConnected = false;
+        let eventSource = null;
 
-    // Initialize EventSource for real-time updates
-  // In your frontend code
-function initEventSource() {
-    if (eventSource) eventSource.close();
-    
-    eventSource = new EventSource(`${API_BASE}/events`);
-    
-    eventSource.addEventListener('qr', (e) => {
-        const data = JSON.parse(e.data);
-        els.qrCode.innerHTML = `<img src="${data.qr}" alt="WhatsApp QR Code">`;
-        els.statusText.textContent = "Scan to login";
-    });
-    
-    eventSource.addEventListener('error', (e) => {
-        const data = JSON.parse(e.data);
-        els.qrCode.innerHTML = `<b class="bad">❌ ${data.message}</b>`;
-        els.statusText.textContent = "Error";
-        console.error("Server error:", data.message);
-    });
-    
-    eventSource.addEventListener('status', (e) => {
-        const data = JSON.parse(e.data);
-        addBackendLog(data.message, Date.now());
-    });
-    
-    eventSource.onerror = () => {
-        els.qrCode.innerHTML = `<b class="bad">❌ Connection lost. Reconnecting...</b>`;
-        setTimeout(initEventSource, 2000);
-    };
-}
+        // Initialize EventSource connection
+        function initEventSource() {
+            if (eventSource) {
+                eventSource.close();
+            }
 
-    function addBackendLog(message, timestamp) {
-        const time = new Date(timestamp).toLocaleTimeString();
-        const logEntry = document.createElement('div');
-        logEntry.className = 'log-entry';
-        logEntry.innerHTML = `<span class="log-time">[${time}]</span> ${message}`;
-        els.backendLog.appendChild(logEntry);
-        els.backendLog.scrollTop = els.backendLog.scrollHeight;
-    }
+            eventSource = new EventSource('/events');
 
-    // Logout function
-    async function logout() {
-        try {
-            const res = await fetch(`${API_BASE}/logout`, { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                els.qrCode.innerHTML = `<div class="spinner"></div> Generating new QR...`;
-                els.statusText.textContent = "Connecting...";
+            eventSource.addEventListener('qr', (event) => {
+                const data = JSON.parse(event.data);
+                elements.qrCode.innerHTML = `<img src="${data.qr}" class="qr-image" alt="WhatsApp QR Code">`;
+                updateStatus('Scan QR to login', 'default');
                 isConnected = false;
+            });
+
+            eventSource.addEventListener('ready', () => {
+                elements.qrCode.innerHTML = `<div style="text-align: center; color: #4cf3a0;">
+                    <div style="font-size: 48px;">✓</div>
+                    <div>WhatsApp Connected</div>
+                </div>`;
+                updateStatus('Connected', 'connected');
+                isConnected = true;
+            });
+
+            eventSource.addEventListener('error', (event) => {
+                const data = JSON.parse(event.data);
+                elements.qrCode.innerHTML = `<div style="text-align: center; color: var(--danger);">
+                    <div>❌ Error</div>
+                    <div style="font-size: 14px; margin-top: 8px;">${data.message}</div>
+                </div>`;
+                updateStatus('Error', 'error');
+                logToConsole(`Error: ${data.message}`);
+            });
+
+            eventSource.addEventListener('status', (event) => {
+                const data = JSON.parse(event.data);
+                logToBackend(data.message);
+            });
+
+            eventSource.addEventListener('log', (event) => {
+                const data = JSON.parse(event.data);
+                logToBackend(data.message);
+            });
+
+            eventSource.onerror = () => {
+                logToConsole('Connection lost. Reconnecting...');
+                setTimeout(initEventSource, 2000);
+            };
+        }
+
+        // Helper functions
+        function updateStatus(text, type) {
+            elements.statusText.textContent = text;
+            elements.statusChip.className = 'status-chip';
+            if (type === 'connected') {
+                elements.statusChip.classList.add('status-connected');
+            } else if (type === 'error') {
+                elements.statusChip.classList.add('status-error');
             }
-        } catch (e) {
-            console.error("Logout error:", e);
-        }
-    }
-
-    // Refresh QR code
-    async function refreshQR() {
-        try {
-            els.qrCode.innerHTML = `<div class="spinner"></div> Refreshing QR...`;
-            await fetch(`${API_BASE}/refresh-qr`, { method: 'POST' });
-        } catch (e) {
-            console.error("Refresh QR error:", e);
-        }
-    }
-
-    // Event listeners
-    els.refreshQR.addEventListener('click', refreshQR);
-    els.logoutBtn.addEventListener('click', logout);
-
-    // Template download
-    els.downloadTemplate.addEventListener('click', () => {
-        const csv = "Phone,Name,Details\n9123456789,John,Order #1234\n9876543210,Jane,Appointment tomorrow\n";
-        const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "whatsapp_template.csv";
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-    });
-
-    // Helpers
-    function log(line) {
-        els.status.textContent += line + "\n";
-        els.status.scrollTop = els.status.scrollHeight;
-    }
-
-    function setProgress(done, total) {
-        const pct = total ? Math.round((done / total) * 100) : 0;
-        els.bar.style.width = pct + "%";
-    }
-
-    function normalizePhone(raw, cc) {
-        let p = String(raw ?? "").replace(/\D/g, "");
-        if (!p) return "";
-        if (!p.startsWith(cc)) p = cc + p.replace(/^0+/, "");
-        return p;
-    }
-
-    // Bulk sending
-    els.sendBtn.addEventListener('click', sendBulkExcel);
-    els.downloadLogBtn.addEventListener('click', () => {
-        window.open(`${API_BASE}/download-log`, "_blank");
-    });
-
-    async function sendBulkExcel() {
-        if (!isConnected) {
-            alert("Please connect to WhatsApp first by scanning the QR code");
-            return;
         }
 
-        const file = els.excelFile.files[0];
-        const delaySec = Math.max(0.1, parseFloat(els.delay.value || "1"));
-        const cc = els.countryCode.value.replace(/\D/g, "") || "91";
-        const rawMessage = els.messageInput.value.trim();
+        function logToConsole(message) {
+            elements.consoleOutput.innerHTML += `${message}\n`;
+            elements.consoleOutput.scrollTop = elements.consoleOutput.scrollHeight;
+        }
 
-        els.status.textContent = "";
-        setProgress(0, 1);
+        function logToBackend(message) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            elements.backendLog.innerHTML += `
+                <div class="log-entry">
+                    <span class="log-time">[${timeString}]</span>
+                    ${message}
+                </div>
+            `;
+            elements.backendLog.scrollTop = elements.backendLog.scrollHeight;
+        }
 
-        if (!file) return alert("Please select an Excel file");
-        if (!rawMessage) return alert("Please type your message");
+        function updateProgress(percent) {
+            elements.progressBar.style.width = `${percent}%`;
+        }
 
-        try {
-            const buf = await file.arrayBuffer();
-            const wb = XLSX.read(buf);
-            const sheet = wb.Sheets[wb.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet);
-
-            if (!rows.length) return alert("Excel file is empty!");
-
-            log(`Found ${rows.length} rows.\n`);
-            let sent = 0, failed = 0;
-
-            els.sendBtn.disabled = true;
-            els.sendBtn.innerHTML = '<span>⏳</span> Sending...';
-
-            for (let i = 0; i < rows.length; i++) {
-                const row = rows[i];
-                let phone = row.Phone ?? row.phone ?? row.Mobile ?? row.mobile ?? "";
-                phone = normalizePhone(phone, cc);
-
-                if (!phone) {
-                    log(`Row ${i+1}: ❌ Missing phone number. Skipping.`);
-                    setProgress(i + 1, rows.length);
-                    failed++;
-                    continue;
-                }
-
-                const message = rawMessage
-                    .replace(/#Name#/g, row.Name ?? row.name ?? "")
-                    .replace(/#Details#/g, row.Details ?? row.details ?? "");
-
-                try {
-                    const res = await fetch(`${API_BASE}/send-message`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ phone, message })
-                    });
-
-                    if (res.status === 503) {
-                        log(`Row ${i+1} (${phone}): ⏳ Client not ready. Please scan QR and try again.`);
-                        failed++;
-                        break;
-                    }
-
-                    const data = await res.json();
+        // Event listeners
+        elements.refreshBtn.addEventListener('click', () => {
+            fetch('/refresh-qr', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
                     if (data.success) {
-                        log(`Row ${i+1} (${phone}): ✅ Sent`);
-                        sent++;
-                    } else {
-                        const reason = data.message || data.error || "Failed";
-                        log(`Row ${i+1} (${phone}): ❌ ${reason}`);
-                        failed++;
+                        elements.qrCode.innerHTML = `<div class="spinner"></div><div style="margin-top: 12px;">Generating new QR...</div>`;
+                        updateStatus('Refreshing QR...', 'default');
                     }
-                } catch (err) {
-                    log(`Row ${i+1} (${phone}): ❌ Network error`);
-                    failed++;
-                }
+                });
+        });
 
-                setProgress(i + 1, rows.length);
-                if (i < rows.length - 1) {
-                    await new Promise(r => setTimeout(r, delaySec * 1000));
-                }
+        elements.logoutBtn.addEventListener('click', () => {
+            fetch('/logout', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        elements.qrCode.innerHTML = `<div class="spinner"></div><div style="margin-top: 12px;">Logging out...</div>`;
+                        updateStatus('Logging out...', 'default');
+                    }
+                });
+        });
+
+        elements.downloadLogBtn.addEventListener('click', () => {
+            window.open('/download-log', '_blank');
+        });
+
+        elements.sendBtn.addEventListener('click', sendBulkMessages);
+
+        // Bulk message sending function
+        async function sendBulkMessages() {
+            if (!isConnected) {
+                alert('Please connect to WhatsApp first by scanning the QR code');
+                return;
             }
 
-            log(`\nDone. Sent: ${sent}/${rows.length}, Failed: ${failed}`);
-        } catch (err) {
-            alert("Error reading Excel file: " + err.message);
-            console.error(err);
-        } finally {
-            els.sendBtn.disabled = false;
-            els.sendBtn.innerHTML = '<span>📤</span> Send Messages';
-        }
-    }
+            const file = elements.excelFile.files[0];
+            if (!file) {
+                alert('Please select an Excel file');
+                return;
+            }
 
-    // Initialize
-    initEventSource();
+            const messageTemplate = elements.messageInput.value.trim();
+            if (!messageTemplate) {
+                alert('Please enter a message template');
+                return;
+            }
 
-    // Handle page visibility changes
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && !isConnected && eventSource.readyState === EventSource.CLOSED) {
-            initEventSource();
+            const delay = parseFloat(elements.delay.value) || 1;
+            const countryCode = elements.countryCode.value.replace(/\D/g, '') || '91';
+
+            // Disable button during sending
+            elements.sendBtn.disabled = true;
+            elements.sendBtn.innerHTML = '<span>⏳</span> Sending...';
+
+            // Clear console
+            elements.consoleOutput.innerHTML = '';
+            updateProgress(0);
+
+            try {
+                // Read Excel file
+                const arrayBuffer = await file.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer);
+                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(worksheet);
+
+                if (!rows.length) {
+                    throw new Error('Excel file is empty');
+                }
+
+                logToConsole(`Found ${rows.length} contacts to process`);
+                
+                let successCount = 0;
+                let failCount = 0;
+
+                // Process each row
+                for (let i = 0; i < rows.length; i++) {
+                    const row = rows[i];
+                    const phone = (row.Phone || row.phone || '').toString().replace(/\D/g, '');
+                    
+                    if (!phone) {
+                        logToConsole(`Row ${i + 1}: ❌ Missing phone number`);
+                        failCount++;
+                        continue;
+                    }
+
+                    const fullPhone = phone.startsWith(countryCode) ? phone : countryCode + phone;
+                    const message = messageTemplate
+                        .replace(/#Name#/g, row.Name || row.name || '')
+                        .replace(/#Message#/g, row.Message || row.message || '');
+
+                    try {
+                        const response = await fetch('/send-message', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ phone: fullPhone, message })
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            logToConsole(`${i + 1}/${rows.length}: ✅ Sent to ${fullPhone}`);
+                            successCount++;
+                        } else {
+                            logToConsole(`${i + 1}/${rows.length}: ❌ Failed (${result.message || 'Unknown error'})`);
+                            failCount++;
+                        }
+                    } catch (error) {
+                        logToConsole(`${i + 1}/${rows.length}: ❌ Network error`);
+                        failCount++;
+                    }
+
+                    // Update progress
+                    const progress = Math.round(((i + 1) / rows.length) * 100);
+                    updateProgress(progress);
+
+                    // Add delay between messages (except for last one)
+                    if (i < rows.length - 1 && delay > 0) {
+                        await new Promise(resolve => setTimeout(resolve, delay * 1000));
+                    }
+                }
+
+                logToConsole(`\nFinished! Success: ${successCount}, Failed: ${failCount}`);
+            } catch (error) {
+                logToConsole(`❌ Error: ${error.message}`);
+            } finally {
+                // Re-enable button
+                elements.sendBtn.disabled = false;
+                elements.sendBtn.innerHTML = '<span>📤</span> Send Messages';
+            }
         }
-    });
+
+        // Initialize
+        initEventSource();
     </script>
 </body>
 </html>
