@@ -28,12 +28,12 @@ const logFile = path.join(logPath, "success.log");
 
 // Multer config
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadPath),
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-        const ext = path.extname(file.originalname);
-        cb(null, file.fieldname + "-" + uniqueSuffix + ext);
-    },
+  destination: (req, file, cb) => cb(null, uploadPath),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    const ext = path.extname(file.originalname);
+    cb(null, file.fieldname + "-" + uniqueSuffix + ext);
+  },
 });
 const upload = multer({ storage });
 
@@ -42,313 +42,339 @@ let client = null;
 let clients = new Set();
 let currentQr = null;
 
+// Clean up old sessions
+function cleanupOldSessions() {
+  try {
+    if (fs.existsSync(sessionPath)) {
+      console.log("Cleaning up old session files...");
+      fs.rmSync(sessionPath, { recursive: true, force: true });
+      fs.mkdirSync(sessionPath, { recursive: true });
+    }
+  } catch (err) {
+    console.error("Session cleanup error:", err);
+  }
+}
+
 // Initialize WhatsApp Client
 function initClient() {
-    if (client) return client;
+  if (client) {
+    console.log("Client already initialized");
+    return client;
+  }
 
-    console.log("Initializing WhatsApp client...");
-    
-    client = new Client({
-        authStrategy: new LocalAuth({ 
-            clientId: "bulk-sender",
-            dataPath: sessionPath
-        }),
-        puppeteer: {
-            headless: true,
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-accelerated-2d-canvas",
-                "--no-first-run",
-                "--no-zygote",
-                "--disable-gpu"
-            ]
-        },
-        qrMaxRetries: 3,
-        takeoverOnConflict: true,
-        restartOnAuthFail: true
-    });
+  cleanupOldSessions();
 
-// In your WhatsApp client initialization
-client.on('qr', async (qr) => {
+  console.log("Initializing WhatsApp client...");
+
+  client = new Client({
+    authStrategy: new LocalAuth({
+      clientId: "bulk-sender",
+      dataPath: sessionPath,
+    }),
+    puppeteer: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--disable-gpu",
+      ],
+    },
+    qrMaxRetries: 3,
+    takeoverOnConflict: true,
+    restartOnAuthFail: true,
+  });
+
+  // Event handlers
+  client.on("qr", async (qr) => {
     console.log("QR Code received");
     
-    // Validate the QR string first
-    if (!qr || typeof qr !== 'string') {
-        console.error("Invalid QR code received");
-        notifyClients({ event: "error", message: "Invalid QR code format" });
-        return;
+    if (!qr || typeof qr !== "string") {
+      console.error("Invalid QR code received");
+      notifyClients({ event: "error", message: "Invalid QR code format" });
+      return;
     }
 
     try {
-        // Generate QR code with error correction
-        const qrImage = await qrcode.toDataURL(qr, {
-            scale: 6,  // Lower scale for faster generation
-            errorCorrectionLevel: 'M',
-            margin: 2
-        });
-        
-        currentQr = qrImage;
-        notifyClients({ event: "qr", qr: qrImage });
+      const qrImage = await qrcode.toDataURL(qr, {
+        scale: 6,
+        errorCorrectionLevel: "M",
+        margin: 2,
+        color: {
+          dark: "#25D366",
+          light: "#12142a"
+        }
+      });
+      
+      currentQr = qr;
+      notifyClients({ event: "qr", qr: qrImage });
     } catch (err) {
-        console.error("QR generation failed:", err);
-        notifyClients({ 
-            event: "error", 
-            message: "QR generation failed. Please try refreshing." 
-        });
+      console.error("QR generation failed:", err);
+      notifyClients({
+        event: "error",
+        message: "QR generation failed. Please try refreshing.",
+      });
     }
-});
-app.get('/debug-qr', async (req, res) => {
-    try {
-        const testQR = await qrcode.toDataURL('test-qr-code', { scale: 6 });
-        res.send(`<img src="${testQR}">`);
-    } catch (err) {
-        res.status(500).send(`QR Error: ${err.message}`);
-    }
-});
-    
-    client.on("ready", () => {
-        console.log("WhatsApp client ready!");
-        currentQr = null;
-        notifyClients({ event: "ready" });
-    });
+  });
 
-    client.on("auth_failure", (msg) => {
-        console.error("Auth failure:", msg);
-        notifyClients({ event: "auth_failure", message: msg });
-    });
+  client.on("ready", () => {
+    console.log("WhatsApp client ready!");
+    currentQr = null;
+    notifyClients({ event: "ready" });
+  });
 
-    client.on("disconnected", (reason) => {
-        console.warn("Disconnected:", reason);
-        notifyClients({ event: "disconnected", reason });
-        setTimeout(() => {
-            client.initialize().catch(err => console.error("Reinit error:", err));
-        }, 2000);
-    });
+  client.on("authenticated", () => {
+    console.log("Authenticated successfully");
+    notifyClients({ event: "status", message: "Authenticated successfully" });
+  });
 
-    client.initialize().catch(err => {
-        console.error("Initialization error:", err);
-        notifyClients({ event: "error", message: "Failed to initialize WhatsApp client" });
-    });
+  client.on("auth_failure", (msg) => {
+    console.error("Auth failure:", msg);
+    notifyClients({ event: "auth_failure", message: msg });
+  });
 
-    return client;
+  client.on("disconnected", (reason) => {
+    console.warn("Disconnected:", reason);
+    notifyClients({ event: "disconnected", reason });
+    setTimeout(() => {
+      client = null;
+      initClient();
+    }, 2000);
+  });
+
+  client.on("loading_screen", (percent, message) => {
+    console.log(`Loading: ${percent}% ${message || ""}`);
+    notifyClients({
+      event: "status",
+      message: `Loading: ${percent}% ${message || ""}`,
+    });
+  });
+
+  client.initialize().catch((err) => {
+    console.error("Initialization error:", err);
+    notifyClients({
+      event: "error",
+      message: "Failed to initialize WhatsApp client",
+    });
+  });
+
+  return client;
 }
 
 // SSE for real-time events
 function notifyClients(data) {
-    const message = `event: ${data.event}\ndata: ${JSON.stringify(data)}\n\n`;
-    clients.forEach(client => {
-        try {
-            client.res.write(message);
-        } catch (err) {
-            console.error("Error sending SSE:", err);
-            clients.delete(client);
-        }
-    });
+  const message = `event: ${data.event}\ndata: ${JSON.stringify(data)}\n\n`;
+  clients.forEach((client) => {
+    try {
+      client.res.write(message);
+    } catch (err) {
+      console.error("Error sending SSE:", err);
+      clients.delete(client);
+    }
+  });
 }
 
 // Routes
 app.get("/events", (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-    
-    const clientId = Date.now();
-    const newClient = {
-        id: clientId,
-        res
-    };
-    
-    clients.add(newClient);
-    
-    // Send current QR if available
-    if (currentQr) {
-        qrcode.toDataURL(currentQr, { scale: 8 })
-            .then(qrImage => {
-                res.write(`event: qr\ndata: ${JSON.stringify({ qr: qrImage })}\n\n`);
-            })
-            .catch(err => {
-                console.error("QR regen error:", err);
-                res.write(`event: error\ndata: ${JSON.stringify({ message: "Failed to generate QR code" })}\n\n`);
-            });
-    }
-    
-    req.on('close', () => {
-        clients.delete(newClient);
-    });
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  const clientId = Date.now();
+  const newClient = {
+    id: clientId,
+    res,
+  };
+
+  clients.add(newClient);
+
+  // Send current QR if available
+  if (currentQr) {
+    qrcode.toDataURL(currentQr, { scale: 6 })
+      .then((qrImage) => {
+        res.write(`event: qr\ndata: ${JSON.stringify({ qr: qrImage })}\n\n`);
+      })
+      .catch((err) => {
+        console.error("QR regen error:", err);
+        res.write(`event: error\ndata: ${JSON.stringify({
+          message: "Failed to generate QR code",
+        })}\n\n`);
+      });
+  }
+
+  req.on("close", () => {
+    clients.delete(newClient);
+  });
 });
 
 app.get("/get-qr", async (req, res) => {
-    try {
-        if (currentQr) {
-            const qrImage = await qrcode.toDataURL(currentQr, { scale: 8 });
-            res.json({ qr: qrImage, status: "qr_generated" });
-        } else if (client && client.info) {
-            res.json({ status: "already_authenticated" });
-        } else {
-            res.json({ status: "waiting_for_qr" });
-        }
-    } catch (err) {
-        console.error("QR generation error:", err);
-        res.status(500).json({ error: "Failed to generate QR code" });
+  try {
+    if (currentQr) {
+      const qrImage = await qrcode.toDataURL(currentQr, { scale: 6 });
+      res.json({ qr: qrImage, status: "qr_generated" });
+    } else if (client && client.info) {
+      res.json({ status: "already_authenticated" });
+    } else {
+      res.json({ status: "waiting_for_qr" });
     }
+  } catch (err) {
+    console.error("QR generation error:", err);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
 });
 
 app.post("/refresh-qr", (req, res) => {
-    if (client) {
-        client.initialize().catch(err => console.error("Refresh error:", err));
-        res.json({ success: true });
-    } else {
-        res.status(400).json({ success: false, error: "Client not initialized" });
-    }
-});
-
-client.on('loading_screen', (percent, message) => {
-    console.log(`Loading: ${percent}% ${message || ''}`);
-    notifyClients({
-        event: "status",
-        message: `Loading: ${percent}% ${message || ''}`
+  if (client) {
+    client.destroy().then(() => {
+      client = null;
+      initClient();
+      res.json({ success: true });
     });
+  } else {
+    initClient();
+    res.json({ success: true });
+  }
 });
-// Add this to your server initialization
-function cleanupOldSessions() {
-    try {
-        if (fs.existsSync(sessionPath)) {
-            const files = fs.readdirSync(sessionPath);
-            if (files.length > 0) {
-                console.log("Cleaning up old session files...");
-                fs.rmSync(sessionPath, { recursive: true });
-                fs.mkdirSync(sessionPath);
-            }
-        }
-    } catch (err) {
-        console.error("Session cleanup error:", err);
-    }
-}
 
-// Call this before initializing the client
-cleanupOldSessions();
-client.on('authenticated', () => {
-    console.log("Authenticated successfully");
-    notifyClients({ event: "status", message: "Authenticated successfully" });
-});
 app.post("/logout", async (req, res) => {
-    try {
-        if (client) {
-            await client.logout();
-            await client.destroy();
-            client = null;
-            
-            // Clear session data
-            if (fs.existsSync(sessionPath)) {
-                fs.rmSync(sessionPath, { recursive: true });
-            }
-            
-            // Reinitialize client
-            initClient();
-        }
-        res.json({ success: true });
-    } catch (err) {
-        console.error("Logout error:", err);
-        res.status(500).json({ success: false, error: err.message });
+  try {
+    if (client) {
+      await client.logout();
+      await client.destroy();
+      client = null;
+
+      cleanupOldSessions();
+      initClient();
     }
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Logout error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-// Logging function
-function logMessage(phone, message) {
-    const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
-    fs.appendFile(logFile, logEntry, (err) => {
-        if (err) console.error("Error writing log:", err);
-    });
-    notifyClients({ 
-        event: "log", 
-        message: `Message log: ${phone} - ${message}`,
-        timestamp: Date.now()
-    });
-}
+// Debug endpoint
+app.get("/debug-qr", async (req, res) => {
+  try {
+    const testQR = await qrcode.toDataURL("test-qr-code", { scale: 6 });
+    res.send(`<img src="${testQR}">`);
+  } catch (err) {
+    res.status(500).send(`QR Error: ${err.message}`);
+  }
+});
 
 // Message sending function
 async function sendMessageOrMedia(phone, message, media) {
-    phone = phone.replace(/\D/g, "");
-    const cc = phone.length <= 10 ? "91" : ""; // Default to India if number is 10 digits
-    if (cc && !phone.startsWith(cc)) phone = cc + phone;
+  phone = phone.replace(/\D/g, "");
+  const cc = phone.length <= 10 ? "91" : "";
+  if (cc && !phone.startsWith(cc)) phone = cc + phone;
 
-    try {
-        const numberDetails = await client.getNumberId(phone);
-        if (!numberDetails) {
-            logMessage(phone, "Not on WhatsApp");
-            return { skipped: true, reason: "Not on WhatsApp" };
-        }
-
-        const chatId = numberDetails._serialized;
-        let mediaData;
-
-        if (media?.url) {
-            if (media.url.startsWith("http")) {
-                const response = await axios.get(media.url, { 
-                    responseType: "arraybuffer",
-                    timeout: 10000 
-                });
-                const mimeType = response.headers["content-type"] || "application/octet-stream";
-                const fileName = path.basename(media.url.split("?")[0]);
-                mediaData = new MessageMedia(mimeType, Buffer.from(response.data).toString("base64"), fileName);
-            } else {
-                const localPath = path.join(__dirname, media.url.replace(/^\/+/, ""));
-                if (!fs.existsSync(localPath)) throw new Error("Media not found");
-                const mimeType = mime.lookup(localPath) || "application/octet-stream";
-                const buffer = fs.readFileSync(localPath);
-                mediaData = new MessageMedia(mimeType, buffer.toString("base64"), path.basename(localPath));
-            }
-        }
-
-        if (mediaData) {
-            await client.sendMessage(chatId, mediaData, { caption: media.caption || message });
-            logMessage(phone, `[MEDIA] ${media.caption || message}`);
-        } else {
-            await client.sendMessage(chatId, message);
-            logMessage(phone, message);
-        }
-        return { skipped: false };
-    } catch (err) {
-        console.error("Send message error:", err);
-        return { skipped: true, reason: err.message };
+  try {
+    const numberDetails = await client.getNumberId(phone);
+    if (!numberDetails) {
+      logMessage(phone, "Not on WhatsApp");
+      return { skipped: true, reason: "Not on WhatsApp" };
     }
+
+    const chatId = numberDetails._serialized;
+    let mediaData;
+
+    if (media?.url) {
+      if (media.url.startsWith("http")) {
+        const response = await axios.get(media.url, {
+          responseType: "arraybuffer",
+          timeout: 10000,
+        });
+        const mimeType = response.headers["content-type"] || "application/octet-stream";
+        const fileName = path.basename(media.url.split("?")[0]);
+        mediaData = new MessageMedia(
+          mimeType,
+          Buffer.from(response.data).toString("base64"),
+          fileName
+        );
+      } else {
+        const localPath = path.join(__dirname, media.url.replace(/^\/+/, ""));
+        if (!fs.existsSync(localPath)) throw new Error("Media not found");
+        const mimeType = mime.lookup(localPath) || "application/octet-stream";
+        const buffer = fs.readFileSync(localPath);
+        mediaData = new MessageMedia(
+          mimeType,
+          buffer.toString("base64"),
+          path.basename(localPath)
+        );
+      }
+    }
+
+    if (mediaData) {
+      await client.sendMessage(chatId, mediaData, {
+        caption: media.caption || message,
+      });
+      logMessage(phone, `[MEDIA] ${media.caption || message}`);
+    } else {
+      await client.sendMessage(chatId, message);
+      logMessage(phone, message);
+    }
+    return { skipped: false };
+  } catch (err) {
+    console.error("Send message error:", err);
+    return { skipped: true, reason: err.message };
+  }
+}
+
+// Logging function
+function logMessage(phone, message) {
+  const logEntry = `${new Date().toISOString()} | ${phone} | ${message}\n`;
+  fs.appendFile(logFile, logEntry, (err) => {
+    if (err) console.error("Error writing log:", err);
+  });
+  notifyClients({
+    event: "log",
+    message: `Message log: ${phone} - ${message}`,
+    timestamp: Date.now(),
+  });
 }
 
 // API endpoints
 app.post("/send-message", async (req, res) => {
-    if (!client || !client.info) {
-        return res.status(503).json({ error: "WhatsApp client not ready" });
-    }
+  if (!client || !client.info) {
+    return res.status(503).json({ error: "WhatsApp client not ready" });
+  }
 
-    try {
-        const result = await sendMessageOrMedia(req.body.phone, req.body.message, req.body.media);
-        if (result.skipped) {
-            return res.json({ success: false, message: result.reason });
-        }
-        res.json({ success: true, message: `Message sent to ${req.body.phone}` });
-    } catch (err) {
-        console.error("Error:", err.message);
-        res.status(500).json({ success: false, error: err.message });
+  try {
+    const result = await sendMessageOrMedia(
+      req.body.phone,
+      req.body.message,
+      req.body.media
+    );
+    if (result.skipped) {
+      return res.json({ success: false, message: result.reason });
     }
+    res.json({ success: true, message: `Message sent to ${req.body.phone}` });
+  } catch (err) {
+    console.error("Error:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 app.get("/download-log", (req, res) => {
-    if (!fs.existsSync(logFile)) return res.status(404).send("Log file not found");
-    res.download(logFile, "whatsapp_success_log.txt");
+  if (!fs.existsSync(logFile))
+    return res.status(404).send("Log file not found");
+  res.download(logFile, "whatsapp_success_log.txt");
 });
 
 app.post("/upload-media", upload.single("file"), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-    res.json({ url: `/uploads/${req.file.filename}` });
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  res.json({ url: `/uploads/${req.file.filename}` });
 });
 
 app.use("/uploads", express.static(uploadPath));
 
 app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // Initialize client
@@ -356,19 +382,19 @@ initClient();
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-    notifyClients({ 
-        event: "log", 
-        message: `Server started on port ${PORT}`,
-        timestamp: Date.now()
-    });
+  console.log(`Server running at http://localhost:${PORT}`);
+  notifyClients({
+    event: "log",
+    message: `Server started on port ${PORT}`,
+    timestamp: Date.now(),
+  });
 });
 
 // Process cleanup
-process.on('SIGINT', async () => {
-    console.log("Shutting down gracefully...");
-    if (client) {
-        await client.destroy();
-    }
-    process.exit();
+process.on("SIGINT", async () => {
+  console.log("Shutting down gracefully...");
+  if (client) {
+    await client.destroy();
+  }
+  process.exit();
 });
