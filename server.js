@@ -3,7 +3,7 @@ const express = require("express");
 const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 const path = require("path");
-const fs = require("fs");
+// const fs = require("fs");
 const multer = require("multer");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
@@ -31,6 +31,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
+
+const fs = require("fs");
+if (!fs.existsSync("sessions")) {
+  fs.mkdirSync("sessions");
+}
 
 // Session configuration
 app.use(
@@ -505,4 +510,3 @@ app.listen(PORT, () => {
   // Initialize default client
   initializeWhatsAppClient("default");
 });
-
