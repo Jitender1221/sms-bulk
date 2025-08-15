@@ -1,591 +1,1099 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Bulk Sender</title>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <title>WhatsApp Web Client</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
-        :root {
-            --bg: #0f1221;
-            --bg-soft: #12142a;
-            --card: #161a36;
-            --card-2: #1b2046;
-            --text: #e9ecff;
-            --muted: #a9b0d6;
-            --brand: #25D366;
-            --brand-d: #1da851;
-            --accent: #7aa2ff;
-            --danger: #ff5d7a;
-            --border: rgba(255, 255, 255, 0.08);
-            --shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-            --radius: 16px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        }
-
         body {
-            background: var(--bg);
-            color: var(--text);
-            min-height: 100vh;
-            padding: 24px;
-            line-height: 1.5;
+            background-color: #0F1221;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .sidebar {
+            background-color: #128C7E;
+            color: white;
+            height: 100vh;
+            position: fixed;
+            padding-top: 20px;
         }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            gap: 16px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo {
-            width: 42px;
-            height: 42px;
-            display: grid;
-            place-items: center;
-            background: linear-gradient(145deg, var(--brand), #38f08d);
-            color: #062314;
-            font-weight: 900;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-        }
-
-        h1 {
-            font-size: 22px;
-            margin-bottom: 4px;
-        }
-
-        .muted {
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: linear-gradient(180deg, var(--card), var(--card-2));
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
+        .main-content {
+            margin-left: 250px;
             padding: 20px;
-            box-shadow: var(--shadow);
         }
-
-        .card h2 {
-            font-size: 18px;
-            margin-bottom: 16px;
+        .qr-container {
+            text-align: center;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
-
-        label {
-            display: block;
-            margin: 16px 0 8px;
-            font-weight: 600;
+        .status-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
         }
-
-        input, textarea {
-            width: 100%;
-            padding: 12px;
-            background: #0e1130;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            outline: none;
+        .account-card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
         }
-
-        textarea {
-            min-height: 140px;
-            resize: vertical;
+        .message-form {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
         }
-
-        .btn {
-            border: none;
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: var(--shadow);
+        .nav-link {
+            color: white;
+            margin-bottom: 5px;
+            border-radius: 5px;
         }
-
-        .btn-primary {
-            background: var(--brand);
-            color: #062314;
-        }
-
-        .btn-primary:hover {
-            background: var(--brand-d);
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: #2a2f5a;
-            color: var(--text);
-        }
-
-        .btn-danger {
-            background: var(--danger);
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
             color: white;
         }
-
-        .qr-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 300px;
-            border: 1px dashed var(--border);
-            border-radius: 16px;
-            background: #0b1033;
-            padding: 20px;
-            margin-bottom: 16px;
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            padding-left: 15px;
         }
-
-        .qr-image {
-            max-width: 220px;
-            border-radius: 12px;
+        .preview-image {
+            max-width: 100px;
+            max-height: 100px;
+            margin-top: 10px;
         }
-
-        .status-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            background: #1d2146;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            font-size: 14px;
+        .event-log {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
         }
-
-        .status-connected {
-            color: #4cf3a0;
+        #qrCode img {
+            max-width: 100%;
+            height: auto;
         }
-
-        .status-error {
-            color: var(--danger);
+        .template-variable {
+            background-color: #e9ecef;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin: 0 2px;
+            font-family: monospace;
         }
-
-        .console {
-            background: #0a0d27;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            min-height: 180px;
+        .progress {
+            height: 25px;
+        }
+        .progress-bar {
+            line-height: 25px;
+        }
+        .template-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .excel-preview {
             max-height: 300px;
             overflow-y: auto;
-            font-family: monospace;
-            white-space: pre-wrap;
-            margin-top: 16px;
+            margin-top: 10px;
         }
-
-        .progress-bar {
-            height: 10px;
-            background: #0f1333;
-            border-radius: 999px;
-            margin: 16px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            width: 0%;
-            background: linear-gradient(90deg, #38f08d, #7aa2ff);
-            transition: width 0.3s ease;
-        }
-
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-top-color: var(--brand);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .backend-log {
-            background: #0a0d27;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 12px;
-            margin-top: 16px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 13px;
-        }
-
-        .log-entry {
-            margin-bottom: 6px;
-            line-height: 1.4;
-        }
-
-        .log-time {
-            color: var(--muted);
-            margin-right: 8px;
+        .excel-preview table {
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="brand">
-                <div class="logo">WA</div>
-                <div>
-                    <h1>WhatsApp Bulk Sender</h1>
-                    <div class="muted">Send personalized messages in bulk</div>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+                <div class="logo">
+                    <i class="bi bi-whatsapp"></i> WhatsApp Client
                 </div>
-            </div>
-            <div class="status-chip" id="statusChip">
-                <span id="statusText">Connecting...</span>
-            </div>
-        </header>
-
-        <div class="grid">
-            <!-- Left Column: Bulk Sender -->
-            <div class="card">
-                <h2>Bulk Message</h2>
-                
-                <label>Upload Excel File (.xlsx, .xls)</label>
-                <input type="file" id="excelFile" accept=".xlsx,.xls">
-                <div class="muted" style="margin-top: 8px;">
-                    Required columns: <code>Phone</code>, <code>Name</code>, <code>Message</code>
-                </div>
-                
-                <label>Message Template</label>
-                <textarea id="messageInput" placeholder="Hi #Name#, your message is: #Message#"></textarea>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px;">
-                    <div>
-                        <label>Delay (seconds)</label>
-                        <input type="number" id="delay" value="1" min="0.1" step="0.1">
-                    </div>
-                    <div>
-                        <label>Country Code</label>
-                        <input type="text" id="countryCode" value="91">
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 12px; margin-top: 20px;">
-                    <button class="btn btn-primary" id="sendBtn">
-                        <span>📤</span> Send Messages
-                    </button>
-                    <button class="btn btn-secondary" id="downloadLogBtn">
-                        <span>📥</span> Download Log
-                    </button>
-                </div>
-                
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressBar"></div>
-                </div>
-                
-                <div class="console" id="consoleOutput"></div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#send-message" data-bs-toggle="tab">
+                            <i class="bi bi-send"></i> Send Message
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#bulk-message" data-bs-toggle="tab">
+                            <i class="bi bi-send-check"></i> Bulk Message
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#templates" data-bs-toggle="tab">
+                            <i class="bi bi-file-earmark-text"></i> Templates
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#accounts" data-bs-toggle="tab">
+                            <i class="bi bi-people"></i> Accounts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#logs" data-bs-toggle="tab">
+                            <i class="bi bi-journal-text"></i> Event Logs
+                        </a>
+                    </li>
+                </ul>
             </div>
 
-            <!-- Right Column: WhatsApp Session -->
-            <div class="card">
-                <h2>WhatsApp Session</h2>
-                
-                <div class="qr-container" id="qrContainer">
-                    <div id="qrCode">
-                        <div class="spinner"></div>
-                        <div style="margin-top: 12px;">Generating QR code...</div>
+            <!-- Main Content -->
+            <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
+                <div class="tab-content">
+                    <!-- Dashboard Tab -->
+                    <div class="tab-pane fade show active" id="dashboard">
+                        <h2>Dashboard</h2>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="qr-container">
+                                    <h4>QR Code</h4>
+                                    <div id="qrCode">Waiting for QR code...</div>
+                                    <div id="qrStatus" class="mt-2">Initializing connection...</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="status-card">
+                                    <h4>Status</h4>
+                                    <div id="connectionStatus">Not connected</div>
+                                    <div id="activeAccount">Active Account: <span id="currentAccount">default</span></div>
+                                </div>
+                                <div class="account-card">
+                                    <h4>Account Management</h4>
+                                    <div class="mb-3">
+                                        <label class="form-label">Switch Account</label>
+                                        <select id="accountSelect" class="form-select">
+                                            <option value="default">default</option>
+                                        </select>
+                                    </div>
+                                    <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; gap: 12px;">
-                    <button class="btn btn-secondary" id="refreshBtn">
-                        Refresh QR
-                    </button>
-                    <button class="btn btn-danger" id="logoutBtn">
-                        Logout
-                    </button>
-                </div>
-                
-                <div class="muted" style="margin-top: 12px;">
-                    Open WhatsApp → Linked Devices → Link a Device → Scan QR Code
-                </div>
-                
-                <div style="margin-top: 20px;">
-                    <h3>Backend Process</h3>
-                    <div class="backend-log" id="backendLog"></div>
+
+                    <!-- Send Message Tab -->
+                    <div class="tab-pane fade" id="send-message">
+                        <h2>Send Message</h2>
+                        <div class="message-form">
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Phone Number (with country code)</label>
+                                <input type="text" class="form-control" id="phoneNumber" placeholder="e.g. 919876543210">
+                            </div>
+                            <div class="mb-3">
+                                <label for="messageText" class="form-label">Message</label>
+                                <textarea class="form-control" id="messageText" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="mediaFile" class="form-label">Media Attachment (optional)</label>
+                                <input type="file" class="form-control" id="mediaFile">
+                                <div id="mediaPreview" class="mt-2"></div>
+                                <div class="form-text">You can attach an image, video, or document</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="mediaCaption" class="form-label">Media Caption (optional)</label>
+                                <input type="text" class="form-control" id="mediaCaption" placeholder="Caption for your media">
+                            </div>
+                            <button id="sendMessageBtn" class="btn btn-success">Send Message</button>
+                            <div id="sendStatus" class="mt-2"></div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Message Tab -->
+                    <div class="tab-pane fade" id="bulk-message">
+                        <h2>Bulk Message</h2>
+                        <div class="message-form">
+                            <div class="mb-3">
+                                <label class="form-label">Message Source</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="messageSource" id="useTemplate" value="template" checked>
+                                    <label class="form-check-label" for="useTemplate">
+                                        Use Template
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="messageSource" id="useCustomMessage" value="custom">
+                                    <label class="form-check-label" for="useCustomMessage">
+                                        Custom Message
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="templateSection">
+                                <div class="mb-3">
+                                    <label for="templateSelect" class="form-label">Select Template</label>
+                                    <select class="form-select" id="templateSelect">
+                                        <option value="">Loading templates...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Template Preview</label>
+                                    <div id="templatePreview" class="template-preview">
+                                        Select a template to preview
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="customMessageSection" style="display: none;">
+                                <div class="mb-3">
+                                    <label for="bulkMessageText" class="form-label">Message</label>
+                                    <textarea class="form-control" id="bulkMessageText" rows="3"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="recipientsFile" class="form-label">Recipients Excel File</label>
+                                <input type="file" class="form-control" id="recipientsFile" accept=".xlsx, .xls, .csv">
+                                <div class="form-text">Excel file should contain phone numbers and template variables (if using template)</div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="phoneColumn" class="form-label">Phone Number Column</label>
+                                <select class="form-select" id="phoneColumn" disabled>
+                                    <option value="">Upload file to see columns</option>
+                                </select>
+                            </div>
+
+                            <div id="variableMappingSection" class="mb-3" style="display: none;">
+                                <label class="form-label">Variable Mapping</label>
+                                <div id="variableMappings"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="bulkMediaFile" class="form-label">Media Attachment (optional)</label>
+                                <input type="file" class="form-control" id="bulkMediaFile">
+                                <div id="bulkMediaPreview" class="mt-2"></div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="bulkMediaCaption" class="form-label">Media Caption (optional)</label>
+                                <input type="text" class="form-control" id="bulkMediaCaption" placeholder="Caption for your media">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="delayBetweenMessages" class="form-label">Delay between messages (seconds)</label>
+                                <input type="number" class="form-control" id="delayBetweenMessages" value="2" min="1">
+                            </div>
+
+                            <button id="startBulkSendBtn" class="btn btn-success">Start Bulk Send</button>
+                            <button id="pauseBulkSendBtn" class="btn btn-warning" style="display: none;">Pause</button>
+                            <button id="stopBulkSendBtn" class="btn btn-danger" style="display: none;">Stop</button>
+
+                            <div class="progress mt-3" style="display: none;" id="bulkProgressContainer">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" id="bulkProgressBar" style="width: 0%">0%</div>
+                            </div>
+
+                            <div id="bulkSendStatus" class="mt-2"></div>
+
+                            <div class="excel-preview mt-3" id="excelPreview"></div>
+                        </div>
+                    </div>
+
+                    <!-- Templates Tab -->
+                    <div class="tab-pane fade" id="templates">
+                        <h2>Manage Templates</h2>
+                        <div class="message-form">
+                            <div class="mb-3">
+                                <label for="templateName" class="form-label">Template Name</label>
+                                <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                            </div>
+                            <div class="mb-3">
+                                <label for="templateContent" class="form-label">Template Content</label>
+                                <textarea class="form-control" id="templateContent" rows="5"></textarea>
+                                <div class="form-text">
+                                    Use {{variable_name}} for variables. Example: "Hello {{name}}, your order {{order_id}} is ready!"
+                                </div>
+                            </div>
+                            <button id="saveTemplateBtn" class="btn btn-primary">Save Template</button>
+                            <button id="updateTemplateBtn" class="btn btn-primary" style="display: none;">Update Template</button>
+                            <button id="cancelEditBtn" class="btn btn-secondary" style="display: none;">Cancel</button>
+
+                            <div class="mt-4">
+                                <h5>Existing Templates</h5>
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Variables</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="templatesList">
+                                        <tr>
+                                            <td colspan="3">Loading templates...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accounts Tab -->
+                    <div class="tab-pane fade" id="accounts">
+                        <h2>Manage Accounts</h2>
+                        <div class="message-form">
+                            <div class="mb-3">
+                                <label for="newAccountId" class="form-label">Create New Account Session</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="newAccountId" placeholder="Enter account ID">
+                                    <button class="btn btn-primary" id="createAccountBtn">Create</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h5>Existing Accounts</h5>
+                                <ul class="list-group" id="accountsList">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        default
+                                        <span class="badge bg-primary rounded-pill">Active</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logs Tab -->
+                    <div class="tab-pane fade" id="logs">
+                        <h2>Event Logs</h2>
+                        <div class="event-log" id="eventLog">
+                            <div>System initialized...</div>
+                        </div>
+                        <button class="btn btn-sm btn-secondary mt-2" id="clearLogsBtn">Clear Logs</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Include SheetJS for Excel parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // DOM Elements
-        const elements = {
-            qrContainer: document.getElementById('qrContainer'),
-            qrCode: document.getElementById('qrCode'),
-            consoleOutput: document.getElementById('consoleOutput'),
-            progressBar: document.getElementById('progressBar'),
-            statusChip: document.getElementById('statusChip'),
-            statusText: document.getElementById('statusText'),
-            sendBtn: document.getElementById('sendBtn'),
-            refreshBtn: document.getElementById('refreshBtn'),
-            logoutBtn: document.getElementById('logoutBtn'),
-            downloadLogBtn: document.getElementById('downloadLogBtn'),
-            excelFile: document.getElementById('excelFile'),
-            messageInput: document.getElementById('messageInput'),
-            delay: document.getElementById('delay'),
-            countryCode: document.getElementById('countryCode'),
-            backendLog: document.getElementById('backendLog')
-        };
+        document.addEventListener('DOMContentLoaded', function() {
+            // Global variables
+            let activeAccount = 'default';
+            let eventSource = null;
+            let mediaUrl = null;
+            let bulkMediaUrl = null;
+            let templates = [];
+            let excelData = [];
+            let excelColumns = [];
+            let currentTemplateVariables = [];
+            let bulkSendActive = false;
+            let bulkSendPaused = false;
+            let bulkSendQueue = [];
+            let currentBulkSendIndex = 0;
+            let templateEditId = null;
 
-        // State
-        let isConnected = false;
-        let eventSource = null;
+            // DOM elements
+            const qrCodeElement = document.getElementById('qrCode');
+            const qrStatusElement = document.getElementById('qrStatus');
+            const connectionStatusElement = document.getElementById('connectionStatus');
+            const currentAccountElement = document.getElementById('currentAccount');
+            const accountSelectElement = document.getElementById('accountSelect');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const phoneNumberElement = document.getElementById('phoneNumber');
+            const messageTextElement = document.getElementById('messageText');
+            const mediaFileElement = document.getElementById('mediaFile');
+            const mediaCaptionElement = document.getElementById('mediaCaption');
+            const mediaPreviewElement = document.getElementById('mediaPreview');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            const sendStatusElement = document.getElementById('sendStatus');
+            const newAccountIdElement = document.getElementById('newAccountId');
+            const createAccountBtn = document.getElementById('createAccountBtn');
+            const accountsListElement = document.getElementById('accountsList');
+            const eventLogElement = document.getElementById('eventLog');
+            const clearLogsBtn = document.getElementById('clearLogsBtn');
+            
+            // Bulk message elements
+            const templateSelectElement = document.getElementById('templateSelect');
+            const templatePreviewElement = document.getElementById('templatePreview');
+            const recipientsFileElement = document.getElementById('recipientsFile');
+            const phoneColumnElement = document.getElementById('phoneColumn');
+            const variableMappingSection = document.getElementById('variableMappingSection');
+            const variableMappingsElement = document.getElementById('variableMappings');
+            const bulkMessageTextElement = document.getElementById('bulkMessageText');
+            const bulkMediaFileElement = document.getElementById('bulkMediaFile');
+            const bulkMediaPreviewElement = document.getElementById('bulkMediaPreview');
+            const bulkMediaCaptionElement = document.getElementById('bulkMediaCaption');
+            const delayBetweenMessagesElement = document.getElementById('delayBetweenMessages');
+            const startBulkSendBtn = document.getElementById('startBulkSendBtn');
+            const pauseBulkSendBtn = document.getElementById('pauseBulkSendBtn');
+            const stopBulkSendBtn = document.getElementById('stopBulkSendBtn');
+            const bulkProgressContainer = document.getElementById('bulkProgressContainer');
+            const bulkProgressBar = document.getElementById('bulkProgressBar');
+            const bulkSendStatusElement = document.getElementById('bulkSendStatus');
+            const excelPreviewElement = document.getElementById('excelPreview');
+            const useTemplateRadio = document.getElementById('useTemplate');
+            const useCustomMessageRadio = document.getElementById('useCustomMessage');
+            const templateSection = document.getElementById('templateSection');
+            const customMessageSection = document.getElementById('customMessageSection');
+            
+            // Template elements
+            const templateNameElement = document.getElementById('templateName');
+            const templateContentElement = document.getElementById('templateContent');
+            const saveTemplateBtn = document.getElementById('saveTemplateBtn');
+            const updateTemplateBtn = document.getElementById('updateTemplateBtn');
+            const cancelEditBtn = document.getElementById('cancelEditBtn');
+            const templatesListElement = document.getElementById('templatesList');
 
-        // Initialize EventSource connection
-        function initEventSource() {
-            if (eventSource) {
-                eventSource.close();
-            }
+            // Initialize event source for default account
+            setupEventSource('default');
 
-            eventSource = new EventSource('/events');
+            // Fetch existing accounts
+            fetchAccounts();
 
-            eventSource.addEventListener('qr', (event) => {
-                const data = JSON.parse(event.data);
-                elements.qrCode.innerHTML = `<img src="${data.qr}" class="qr-image" alt="WhatsApp QR Code">`;
-                updateStatus('Scan QR to login', 'default');
-                isConnected = false;
-            });
+            // Load templates
+            fetchTemplates();
 
-            eventSource.addEventListener('ready', () => {
-                elements.qrCode.innerHTML = `<div style="text-align: center; color: #4cf3a0;">
-                    <div style="font-size: 48px;">✓</div>
-                    <div>WhatsApp Connected</div>
-                </div>`;
-                updateStatus('Connected', 'connected');
-                isConnected = true;
-            });
-
-            eventSource.addEventListener('error', (event) => {
-                const data = JSON.parse(event.data);
-                elements.qrCode.innerHTML = `<div style="text-align: center; color: var(--danger);">
-                    <div>❌ Error</div>
-                    <div style="font-size: 14px; margin-top: 8px;">${data.message}</div>
-                </div>`;
-                updateStatus('Error', 'error');
-                logToConsole(`Error: ${data.message}`);
-            });
-
-            eventSource.addEventListener('status', (event) => {
-                const data = JSON.parse(event.data);
-                logToBackend(data.message);
-            });
-
-            eventSource.addEventListener('log', (event) => {
-                const data = JSON.parse(event.data);
-                logToBackend(data.message);
-            });
-
-            eventSource.onerror = () => {
-                logToConsole('Connection lost. Reconnecting...');
-                setTimeout(initEventSource, 2000);
-            };
-        }
-
-        // Helper functions
-        function updateStatus(text, type) {
-            elements.statusText.textContent = text;
-            elements.statusChip.className = 'status-chip';
-            if (type === 'connected') {
-                elements.statusChip.classList.add('status-connected');
-            } else if (type === 'error') {
-                elements.statusChip.classList.add('status-error');
-            }
-        }
-
-        function logToConsole(message) {
-            elements.consoleOutput.innerHTML += `${message}\n`;
-            elements.consoleOutput.scrollTop = elements.consoleOutput.scrollHeight;
-        }
-
-        function logToBackend(message) {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            elements.backendLog.innerHTML += `
-                <div class="log-entry">
-                    <span class="log-time">[${timeString}]</span>
-                    ${message}
-                </div>
-            `;
-            elements.backendLog.scrollTop = elements.backendLog.scrollHeight;
-        }
-
-        function updateProgress(percent) {
-            elements.progressBar.style.width = `${percent}%`;
-        }
-
-        // Event listeners
-        elements.refreshBtn.addEventListener('click', () => {
-            fetch('/refresh-qr', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        elements.qrCode.innerHTML = `<div class="spinner"></div><div style="margin-top: 12px;">Generating new QR...</div>`;
-                        updateStatus('Refreshing QR...', 'default');
-                    }
-                });
-        });
-
-        elements.logoutBtn.addEventListener('click', () => {
-            fetch('/logout', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        elements.qrCode.innerHTML = `<div class="spinner"></div><div style="margin-top: 12px;">Logging out...</div>`;
-                        updateStatus('Logging out...', 'default');
-                    }
-                });
-        });
-
-        elements.downloadLogBtn.addEventListener('click', () => {
-            window.open('/download-log', '_blank');
-        });
-
-        elements.sendBtn.addEventListener('click', sendBulkMessages);
-
-        // Bulk message sending function
-        async function sendBulkMessages() {
-            if (!isConnected) {
-                alert('Please connect to WhatsApp first by scanning the QR code');
-                return;
-            }
-
-            const file = elements.excelFile.files[0];
-            if (!file) {
-                alert('Please select an Excel file');
-                return;
-            }
-
-            const messageTemplate = elements.messageInput.value.trim();
-            if (!messageTemplate) {
-                alert('Please enter a message template');
-                return;
-            }
-
-            const delay = parseFloat(elements.delay.value) || 1;
-            const countryCode = elements.countryCode.value.replace(/\D/g, '') || '91';
-
-            // Disable button during sending
-            elements.sendBtn.disabled = true;
-            elements.sendBtn.innerHTML = '<span>⏳</span> Sending...';
-
-            // Clear console
-            elements.consoleOutput.innerHTML = '';
-            updateProgress(0);
-
-            try {
-                // Read Excel file
-                const arrayBuffer = await file.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer);
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(worksheet);
-
-                if (!rows.length) {
-                    throw new Error('Excel file is empty');
+            // Event listeners
+            accountSelectElement.addEventListener('change', function() {
+                const selectedAccount = this.value;
+                if (selectedAccount !== activeAccount) {
+                    switchAccount(selectedAccount);
                 }
+            });
 
-                logToConsole(`Found ${rows.length} contacts to process`);
+            logoutBtn.addEventListener('click', function() {
+                logoutAccount(activeAccount);
+            });
+
+            mediaFileElement.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    uploadMedia(e.target.files[0], false);
+                }
+            });
+
+            sendMessageBtn.addEventListener('click', function() {
+                sendMessage();
+            });
+
+            createAccountBtn.addEventListener('click', function() {
+                createAccount();
+            });
+
+            clearLogsBtn.addEventListener('click', function() {
+                eventLogElement.innerHTML = '<div>Logs cleared...</div>';
+            });
+
+            // Bulk message event listeners
+            recipientsFileElement.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    parseExcelFile(e.target.files[0]);
+                }
+            });
+
+            templateSelectElement.addEventListener('change', function() {
+                updateTemplatePreview();
+            });
+
+            bulkMediaFileElement.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    uploadMedia(e.target.files[0], true);
+                }
+            });
+
+            startBulkSendBtn.addEventListener('click', function() {
+                startBulkSend();
+            });
+
+            pauseBulkSendBtn.addEventListener('click', function() {
+                togglePauseBulkSend();
+            });
+
+            stopBulkSendBtn.addEventListener('click', function() {
+                stopBulkSend();
+            });
+
+            useTemplateRadio.addEventListener('change', function() {
+                templateSection.style.display = 'block';
+                customMessageSection.style.display = 'none';
+            });
+
+            useCustomMessageRadio.addEventListener('change', function() {
+                templateSection.style.display = 'none';
+                customMessageSection.style.display = 'block';
+            });
+
+            // Template management event listeners
+            saveTemplateBtn.addEventListener('click', function() {
+                saveTemplate();
+            });
+
+            updateTemplateBtn.addEventListener('click', function() {
+                updateTemplate();
+            });
+
+            cancelEditBtn.addEventListener('click', function() {
+                cancelTemplateEdit();
+            });
+
+            // Functions
+            function setupEventSource(accountId) {
+                console.log(`Setting up EventSource for ${accountId}`);
                 
-                let successCount = 0;
-                let failCount = 0;
-
-                // Process each row
-                for (let i = 0; i < rows.length; i++) {
-                    const row = rows[i];
-                    const phone = (row.Phone || row.phone || '').toString().replace(/\D/g, '');
-                    
-                    if (!phone) {
-                        logToConsole(`Row ${i + 1}: ❌ Missing phone number`);
-                        failCount++;
-                        continue;
-                    }
-
-                    const fullPhone = phone.startsWith(countryCode) ? phone : countryCode + phone;
-                    const message = messageTemplate
-                        .replace(/#Name#/g, row.Name || row.name || '')
-                        .replace(/#Message#/g, row.Message || row.message || '');
-
-                    try {
-                        const response = await fetch('/send-message', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ phone: fullPhone, message })
-                        });
-
-                        const result = await response.json();
-
-                        if (result.success) {
-                            logToConsole(`${i + 1}/${rows.length}: ✅ Sent to ${fullPhone}`);
-                            successCount++;
-                        } else {
-                            logToConsole(`${i + 1}/${rows.length}: ❌ Failed (${result.message || 'Unknown error'})`);
-                            failCount++;
-                        }
-                    } catch (error) {
-                        logToConsole(`${i + 1}/${rows.length}: ❌ Network error`);
-                        failCount++;
-                    }
-
-                    // Update progress
-                    const progress = Math.round(((i + 1) / rows.length) * 100);
-                    updateProgress(progress);
-
-                    // Add delay between messages (except for last one)
-                    if (i < rows.length - 1 && delay > 0) {
-                        await new Promise(resolve => setTimeout(resolve, delay * 1000));
-                    }
+                // Close previous connection if exists
+                if (eventSource) {
+                    console.log('Closing existing EventSource');
+                    eventSource.close();
                 }
 
-                logToConsole(`\nFinished! Success: ${successCount}, Failed: ${failCount}`);
-            } catch (error) {
-                logToConsole(`❌ Error: ${error.message}`);
-            } finally {
-                // Re-enable button
-                elements.sendBtn.disabled = false;
-                elements.sendBtn.innerHTML = '<span>📤</span> Send Messages';
-            }
-        }
+                // Setup new connection
+                const eventSourceUrl = `/api/accounts/${accountId}/events`;
+                console.log(`Connecting to SSE at ${eventSourceUrl}`);
+                
+                eventSource = new EventSource(eventSourceUrl);
+                
+                eventSource.addEventListener('connected', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('SSE Connected:', data.message);
+                    logEvent('SSE', 'Connection established');
+                });
+                
+                eventSource.addEventListener('qr', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('QR code received');
+                    qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
+                    qrStatusElement.textContent = 'Scan this QR code with WhatsApp';
+                    logEvent('QR', 'New QR code generated');
+                });
 
-        // Initialize
-        initEventSource();
+                eventSource.addEventListener('ready', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('Client ready');
+                    connectionStatusElement.textContent = 'Connected and ready!';
+                    qrStatusElement.textContent = 'Session is active';
+                    qrCodeElement.innerHTML = '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
+                    logEvent('Status', 'Client is ready');
+                });
+
+                eventSource.addEventListener('authenticated', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('Client authenticated');
+                    connectionStatusElement.textContent = 'Authenticated!';
+                    logEvent('Status', 'Client authenticated');
+                });
+
+                eventSource.addEventListener('auth_failure', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('Auth failure:', data.msg);
+                    connectionStatusElement.textContent = `Authentication failed: ${data.msg}`;
+                    qrCodeElement.innerHTML = '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
+                    logEvent('Error', `Authentication failed: ${data.msg}`);
+                });
+
+                eventSource.addEventListener('disconnected', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('Client disconnected:', data.reason);
+                    connectionStatusElement.textContent = `Disconnected: ${data.reason}`;
+                    qrCodeElement.innerHTML = '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
+                    logEvent('Status', `Disconnected: ${data.reason}`);
+                });
+
+                eventSource.addEventListener('loading', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log(`Loading: ${data.percent}% - ${data.message}`);
+                    connectionStatusElement.textContent = `Loading: ${data.percent}% - ${data.message}`;
+                });
+
+                eventSource.addEventListener('status', function(e) {
+                    const data = JSON.parse(e.data);
+                    console.log('Status update:', data.message);
+                    logEvent('Status', data.message);
+                });
+
+                eventSource.onerror = function(e) {
+                    console.error('EventSource error:', e);
+                    logEvent('Error', 'EventSource connection error');
+                    
+                    // Try to reconnect after 3 seconds
+                    setTimeout(() => {
+                        console.log('Attempting to reconnect EventSource');
+                        setupEventSource(accountId);
+                    }, 3000);
+                };
+            }
+
+            function fetchAccounts() {
+                fetch('/api/accounts')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            updateAccountList(data.accounts);
+                        } else {
+                            logEvent('Error', data.error || 'Failed to fetch accounts');
+                        }
+                    })
+                    .catch(error => {
+                        logEvent('Error', error.message);
+                    });
+            }
+
+            function fetchTemplates() {
+                fetch('/api/templates')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            templates = data.templates;
+                            updateTemplateList();
+                            updateTemplateDropdown();
+                        } else {
+                            logEvent('Error', data.error || 'Failed to fetch templates');
+                        }
+                    })
+                    .catch(error => {
+                        logEvent('Error', error.message);
+                    });
+            }
+
+            function updateAccountList(accounts) {
+                // Update dropdown
+                accountSelectElement.innerHTML = '';
+                accounts.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account;
+                    option.textContent = account;
+                    if (account === activeAccount) {
+                        option.selected = true;
+                    }
+                    accountSelectElement.appendChild(option);
+                });
+
+                // Update list
+                accountsListElement.innerHTML = '';
+                accounts.forEach(account => {
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.textContent = account;
+                    
+                    if (account === activeAccount) {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-primary rounded-pill';
+                        badge.textContent = 'Active';
+                        li.appendChild(badge);
+                    } else {
+                        const activateBtn = document.createElement('button');
+                        activateBtn.className = 'btn btn-sm btn-outline-primary';
+                        activateBtn.textContent = 'Activate';
+                        activateBtn.addEventListener('click', () => switchAccount(account));
+                        li.appendChild(activateBtn);
+                    }
+                    
+                    accountsListElement.appendChild(li);
+                });
+            }
+
+            function updateTemplateList() {
+                templatesListElement.innerHTML = '';
+                
+                if (templates.length === 0) {
+                    templatesListElement.innerHTML = '<tr><td colspan="3">No templates found</td></tr>';
+                    return;
+                }
+                
+                templates.forEach(template => {
+                    const row = document.createElement('tr');
+                    
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = template.name;
+                    
+                    const varsCell = document.createElement('td');
+                    const variables = extractVariablesFromTemplate(template.content);
+                    if (variables.length > 0) {
+                        varsCell.innerHTML = variables.map(v => `<span class="template-variable">${v}</span>`).join(' ');
+                    } else {
+                        varsCell.textContent = 'No variables';
+                    }
+                    
+                    const actionsCell = document.createElement('td');
+                    
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn btn-sm btn-primary me-2';
+                    editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
+                    editBtn.addEventListener('click', () => editTemplate(template));
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn btn-sm btn-danger';
+                    deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
+                    deleteBtn.addEventListener('click', () => deleteTemplate(template.id));
+                    
+                    actionsCell.appendChild(editBtn);
+                    actionsCell.appendChild(deleteBtn);
+                    
+                    row.appendChild(nameCell);
+                    row.appendChild(varsCell);
+                    row.appendChild(actionsCell);
+                    
+                    templatesListElement.appendChild(row);
+                });
+            }
+
+            function updateTemplateDropdown() {
+                templateSelectElement.innerHTML = '';
+                
+                if (templates.length === 0) {
+                    templateSelectElement.innerHTML = '<option value="">No templates available</option>';
+                    return;
+                }
+                
+                templateSelectElement.innerHTML = '<option value="">Select a template</option>';
+                templates.forEach(template => {
+                    const option = document.createElement('option');
+                    option.value = template.id;
+                    option.textContent = template.name;
+                    templateSelectElement.appendChild(option);
+                });
+            }
+
+            function updateTemplatePreview() {
+                const templateId = templateSelectElement.value;
+                if (!templateId) {
+                    templatePreviewElement.textContent = 'Select a template to preview';
+                    currentTemplateVariables = [];
+                    updateVariableMappingSection();
+                    return;
+                }
+                
+                const template = templates.find(t => t.id === templateId);
+                if (template) {
+                    templatePreviewElement.innerHTML = highlightVariables(template.content);
+                    currentTemplateVariables = extractVariablesFromTemplate(template.content);
+                    updateVariableMappingSection();
+                }
+            }
+
+            function highlightVariables(content) {
+                const variables = extractVariablesFromTemplate(content);
+                let highlighted = content;
+                
+                variables.forEach(variable => {
+                    highlighted = highlighted.replace(
+                        new RegExp(`\\{\\{${variable}\\}\\}`, 'g'),
+                        `<span class="template-variable">{{${variable}}}</span>`
+                    );
+                });
+                
+                return highlighted;
+            }
+
+            function extractVariablesFromTemplate(content) {
+                if (!content) return [];
+                const regex = /\{\{([^}]+)\}\}/g;
+                const matches = [];
+                let match;
+                
+                while ((match = regex.exec(content))) {
+                    if (!matches.includes(match[1])) {
+                        matches.push(match[1]);
+                    }
+                }
+                
+                return matches;
+            }
+
+            function switchAccount(accountId) {
+                fetch('/api/accounts/activate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accountId })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        activeAccount = accountId;
+                        currentAccountElement.textContent = accountId;
+                        setupEventSource(accountId);
+                        fetchAccounts();
+                        logEvent('Account switched', `Active account is now ${accountId}`);
+                    } else {
+                        logEvent('Error', data.error || 'Failed to switch account');
+                    }
+                })
+                .catch(error => {
+                    logEvent('Error', error.message);
+                });
+            }
+
+            function logoutAccount(accountId) {
+                if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
+                    fetch('/api/accounts/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ accountId })
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            logEvent('Logged out', `Account ${accountId} has been logged out`);
+                            if (accountId === activeAccount) {
+                                // Reset UI for logged out account
+                                qrCodeElement.innerHTML = '';
+                                qrStatusElement.textContent = 'Account logged out';
+                                connectionStatusElement.textContent = 'Logged out';
+                            }
+                            fetchAccounts();
+                        } else {
+                            logEvent('Error', data.error || 'Failed to logout');
+                        }
+                    })
+                    .catch(error => {
+                        logEvent('Error', error.message);
+                    });
+                }
+            }
+
+            function uploadMedia(file, isBulk) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const statusElement = isBulk ? bulkSendStatusElement : sendStatusElement;
+                const previewElement = isBulk ? bulkMediaPreviewElement : mediaPreviewElement;
+
+                statusElement.textContent = 'Uploading media...';
+                statusElement.className = 'mt-2 text-info';
+
+                fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        if (isBulk) {
+                            bulkMediaUrl = data.url;
+                        } else {
+                            mediaUrl = data.url;
+                        }
+                        previewElement.innerHTML = `
+                            <div class="alert alert-success p-2">
+                                <small>File ready: ${file.name}</small>
+                                <img src="${data.url}" class="preview-image mt-1">
+                            </div>
+                        `;
+                        statusElement.textContent = 'Media uploaded successfully!';
+                        statusElement.className = 'mt-2 text-success';
+                    } else {
+                        statusElement.textContent = `Error: ${data.error || 'Failed to upload media'}`;
+                        statusElement.className = 'mt-2 text-danger';
+                    }
+                })
+                .catch(error => {
+                    statusElement.textContent = `Error: ${error.message}`;
+                    statusElement.className = 'mt-2 text-danger';
+                });
+            }
+
+            function sendMessage() {
+                const phone = phoneNumberElement.value.trim();
+                const message = messageTextElement.value.trim();
+                const caption = mediaCaptionElement.value.trim();
+
+                if (!phone) {
+                    sendStatusElement.textContent = 'Phone number is required';
+                    sendStatusElement.className = 'mt-2 text-danger';
+                    return;
+                }
+
+                if (!message && !mediaUrl) {
+                    sendStatusElement.textContent = 'Either message or media is required';
+                    sendStatusElement.className = 'mt-2 text-danger';
+                    return;
+                }
+
+                const payload = {
+                    phone,
+                    message
+                };
+
+                if (mediaUrl) {
+                    payload.media = {
+                        url: mediaUrl,
+                        caption: caption
+                    };
+                }
+
+                sendStatusElement.textContent = 'Sending message...';
+                sendStatusElement.className = 'mt-2 text-info';
+
+                fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        sendStatusElement.textContent = 'Message sent successfully!';
+                        sendStatusElement.className = 'mt-2 text-success';
+                        // Clear form
+                        messageTextElement.value = '';
+                        mediaFileElement.value = '';
+                        mediaCaptionElement.value = '';
+                        mediaPreviewElement.innerHTML = '';
+                        mediaUrl = null;
+                    } else {
+                        sendStatusElement.textContent = data.message || 'Failed to send message';
+                        sendStatusElement.className = 'mt-2 text-danger';
+                    }
+                })
+                .catch(error => {
+                    sendStatusElement.textContent = `Error: ${error.message}`;
+                    sendStatusElement.className = 'mt-2 text-danger';
+                });
+            }
+
+         
+
+
+
+
+            function sendMessage() {
+                const phone = phoneNumberElement.value.trim();
+                const message = messageTextElement.value.trim();
+                const caption = mediaCaptionElement.value.trim();
+
+                if (!phone) {
+                    sendStatusElement.textContent = 'Phone number is required';
+                    sendStatusElement.className = 'mt-2 text-danger';
+                    return;
+                }
+
+                if (!message && !mediaUrl) {
+                    sendStatusElement.textContent = 'Either message or media is required';
+                    sendStatusElement.className = 'mt-2 text-danger';
+                    return;
+                }
+
+                const payload = {
+                    phone,
+                    message
+                };
+
+                if (mediaUrl) {
+                    payload.media = {
+                        url: mediaUrl,
+                        caption: caption
+                    };
+                }
+
+                sendStatusElement.textContent = 'Sending message...';
+                sendStatusElement.className = 'mt-2 text-info';
+
+                fetch('/api/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        sendStatusElement.textContent = 'Message sent successfully!';
+                        sendStatusElement.className = 'mt-2 text-success';
+                        // Clear form
+                        messageTextElement.value = '';
+                        mediaFileElement.value = '';
+                        mediaCaptionElement.value = '';
+                        mediaPreviewElement.innerHTML = '';
+                        mediaUrl = null;
+                    } else {
+                        sendStatusElement.textContent = data.message || 'Failed to send message';
+                        sendStatusElement.className = 'mt-2 text-danger';
+                    }
+                })
+                .catch(error => {
+                    sendStatusElement.textContent = `Error: ${error.message}`;
+                    sendStatusElement.className = 'mt-2 text-danger';
+                });
+            }
+
+            function createAccount() {
+                const accountId = newAccountIdElement.value.trim();
+                
+                if (!accountId) {
+                    alert('Account ID is required');
+                    return;
+                }
+
+                fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accountId })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        logEvent('Account created', `New account ${accountId} created`);
+                        newAccountIdElement.value = '';
+                        fetchAccounts();
+                    } else {
+                        logEvent('Error', data.error || 'Failed to create account');
+                    alert(data.error || 'Failed to create account');
+                    }
+                })
+                .catch(error => {
+                    logEvent('Error', error.message);
+                    alert(error.message);
+                });
+            }
+
+            function logEvent(type, data) {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                let message = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+                
+                const eventElement = document.createElement('div');
+                eventElement.innerHTML = `<strong>[${timeString}] ${type}:</strong> ${message}`;
+                eventLogElement.appendChild(eventElement);
+                eventLogElement.scrollTop = eventLogElement.scrollHeight;
+            }
+        });
     </script>
 </body>
 </html>
