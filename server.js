@@ -505,3 +505,4 @@ app.listen(PORT, () => {
   // Initialize default client
   initializeWhatsAppClient("default");
 });
+
