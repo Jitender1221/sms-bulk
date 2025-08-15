@@ -380,7 +380,7 @@ app.get(/.*/, (req, res) => {
 // Initialize client
 initClient();
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
   notifyClients({
