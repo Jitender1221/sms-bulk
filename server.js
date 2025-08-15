@@ -70,18 +70,37 @@ function initClient() {
         restartOnAuthFail: true
     });
 
-    client.on("qr", async (qr) => {
-        console.log("QR Code received");
-        try {
-            currentQr = qr;
-            const qrImage = await qrcode.toDataURL(qr, { scale: 8 });
-            notifyClients({ event: "qr", qr: qrImage });
-        } catch (err) {
-            console.error("QR generation error:", err);
-            notifyClients({ event: "error", message: "Failed to generate QR code" });
-        }
-    });
+// In your WhatsApp client initialization
+client.on('qr', async (qr) => {
+    console.log("QR Code received");
+    
+    // Validate the QR string first
+    if (!qr || typeof qr !== 'string') {
+        console.error("Invalid QR code received");
+        notifyClients({ event: "error", message: "Invalid QR code format" });
+        return;
+    }
 
+    try {
+        // Generate QR code with error correction
+        const qrImage = await qrcode.toDataURL(qr, {
+            scale: 6,  // Lower scale for faster generation
+            errorCorrectionLevel: 'M',
+            margin: 2
+        });
+        
+        currentQr = qrImage;
+        notifyClients({ event: "qr", qr: qrImage });
+    } catch (err) {
+        console.error("QR generation failed:", err);
+        notifyClients({ 
+            event: "error", 
+            message: "QR generation failed. Please try refreshing." 
+        });
+    }
+});
+
+    
     client.on("ready", () => {
         console.log("WhatsApp client ready!");
         currentQr = null;
@@ -179,6 +198,35 @@ app.post("/refresh-qr", (req, res) => {
     }
 });
 
+client.on('loading_screen', (percent, message) => {
+    console.log(`Loading: ${percent}% ${message || ''}`);
+    notifyClients({
+        event: "status",
+        message: `Loading: ${percent}% ${message || ''}`
+    });
+});
+// Add this to your server initialization
+function cleanupOldSessions() {
+    try {
+        if (fs.existsSync(sessionPath)) {
+            const files = fs.readdirSync(sessionPath);
+            if (files.length > 0) {
+                console.log("Cleaning up old session files...");
+                fs.rmSync(sessionPath, { recursive: true });
+                fs.mkdirSync(sessionPath);
+            }
+        }
+    } catch (err) {
+        console.error("Session cleanup error:", err);
+    }
+}
+
+// Call this before initializing the client
+cleanupOldSessions();
+client.on('authenticated', () => {
+    console.log("Authenticated successfully");
+    notifyClients({ event: "status", message: "Authenticated successfully" });
+});
 app.post("/logout", async (req, res) => {
     try {
         if (client) {
