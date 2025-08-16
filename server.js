@@ -36,6 +36,12 @@ const fs = require("fs");
 if (!fs.existsSync("sessions")) {
   fs.mkdirSync("sessions");
 }
+$dirs = ['public', 'sessions', 'uploads', 'logs'];
+foreach ($dirs as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0777, true);
+    }
+}
 
 // Session configuration
 app.use(
