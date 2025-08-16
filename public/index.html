@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Web Client</title>
+    <title>GCI WhatsApp Web</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -11,17 +12,20 @@
             background-color: #0F1221;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
+
         .sidebar {
             background-color: #128C7E;
             color: white;
-            height: 100vh;
+            height: 100%;
             position: fixed;
             padding-top: 20px;
         }
+
         .main-content {
             margin-left: 250px;
             padding: 20px;
         }
+
         .qr-container {
             text-align: center;
             padding: 20px;
@@ -29,56 +33,68 @@
             border-radius: 10px;
             margin-bottom: 20px;
         }
+
         .status-card {
             background-color: white;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
         }
+
         .account-card {
             background-color: white;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
         }
+
         .message-form {
             background-color: white;
             border-radius: 10px;
             padding: 20px;
         }
+
         .nav-link {
             color: white;
             margin-bottom: 5px;
             border-radius: 5px;
         }
-        .nav-link:hover, .nav-link.active {
+
+        .nav-link:hover,
+        .nav-link.active {
             background-color: rgba(255, 255, 255, 0.2);
             color: white;
         }
+
         .logo {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: bold;
             margin-bottom: 30px;
             padding-left: 15px;
         }
+
         .preview-image {
             max-width: 100px;
             max-height: 100px;
             margin-top: 10px;
         }
-        .event-log {
-            height: 200px;
-            overflow-y: auto;
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 12px;
-        }
+
+    .event-log {
+    height: 200px;
+    overflow-y: auto;
+    background-color: #000000;
+    padding: 10px;
+    border-radius: 5px;
+    font-family: monospace;
+    font-size: 14px;
+    color: green;
+}
+
         #qrCode img {
             max-width: 100%;
             height: auto;
         }
+
         .template-variable {
             background-color: #e9f7fe;
             color: #0d6efd;
@@ -87,6 +103,7 @@
             font-family: monospace;
             margin: 0 2px;
         }
+
         .template-preview {
             background-color: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -94,12 +111,15 @@
             padding: 10px;
             margin-top: 10px;
         }
+
         .progress-container {
             margin-top: 20px;
         }
+
         .progress {
             height: 25px;
         }
+
         .bulk-preview {
             max-height: 300px;
             overflow-y: auto;
@@ -108,22 +128,37 @@
             border-radius: 5px;
             padding: 10px;
         }
+
         .preview-item {
             padding: 5px;
             border-bottom: 1px solid #eee;
         }
+
         .preview-item:last-child {
             border-bottom: none;
         }
+
+        /* Add to your existing styles */
+.spinner-border {
+    width: 5rem;
+    height: 5rem;
+    margin: 20px auto;
+    display: block;
+}
+hr{
+    border: 1px solid #eee;
+}
     </style>
 </head>
+
 <body>
     <div class="container-fluid">
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="logo">
-                    <i class="bi bi-whatsapp"></i> WhatsApp Client
+                    <h1>Gurukripa Career Institute</h1><br />
+                    <small class="bi bi-whatsapp"></small> WhatsApp Client
                 </div>
                 <ul class="nav flex-column">
                     <li class="nav-item">
@@ -164,7 +199,8 @@
                 <div class="tab-content">
                     <!-- Dashboard Tab -->
                     <div class="tab-pane fade show active" id="dashboard">
-                        <h2>Dashboard</h2>
+                        <h2 class="text-light">Dashboard</h2>
+                        <hr/>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="qr-container">
@@ -177,7 +213,8 @@
                                 <div class="status-card">
                                     <h4>Status</h4>
                                     <div id="connectionStatus">Not connected</div>
-                                    <div id="activeAccount">Active Account: <span id="currentAccount">default</span></div>
+                                    <div id="activeAccount">Active Account: <span id="currentAccount">default</span>
+                                    </div>
                                 </div>
                                 <div class="account-card">
                                     <h4>Account Management</h4>
@@ -195,12 +232,15 @@
 
                     <!-- Single Message Tab -->
                     <div class="tab-pane fade" id="single-message">
-                        <h2>Send Single Message</h2>
+                        <h2 class="text-light">Send Single Message</h2>
+                        <hr/>
                         <div class="message-form">
                             <div class="mb-3">
-                                <label for="phoneNumber" class="form-label">Phone Number (with country code)</label>
-                                <input type="text" class="form-control" id="phoneNumber" placeholder="e.g. 919876543210">
+                                <label for="phoneNumber" class="form-label">Phone Number (with country code (91))</label>
+                                <input type="text" class="form-control" id="phoneNumber"
+                                    placeholder="e.g. 919876543210" >
                             </div>
+                            
                             <div class="mb-3">
                                 <label for="messageText" class="form-label">Message</label>
                                 <textarea class="form-control" id="messageText" rows="3"></textarea>
@@ -213,7 +253,8 @@
                             </div>
                             <div class="mb-3">
                                 <label for="mediaCaption" class="form-label">Media Caption (optional)</label>
-                                <input type="text" class="form-control" id="mediaCaption" placeholder="Caption for your media">
+                                <input type="text" class="form-control" id="mediaCaption"
+                                    placeholder="Caption for your media">
                             </div>
                             <button id="sendMessageBtn" class="btn btn-success">Send Message</button>
                             <div id="sendStatus" class="mt-2"></div>
@@ -222,18 +263,22 @@
 
                     <!-- Bulk Message Tab -->
                     <div class="tab-pane fade" id="bulk-message">
-                        <h2>Send Bulk Messages</h2>
+                            <h2 class="text-light">Send Bulk Messages</h2>
+                        <hr/>
+               
                         <div class="message-form">
                             <div class="mb-3">
                                 <label class="form-label">Message Source</label>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="messageSource" id="useTemplate" value="template" checked>
+                                    <input class="form-check-input" type="radio" name="messageSource" id="useTemplate"
+                                        value="template" checked>
                                     <label class="form-check-label" for="useTemplate">
                                         Use Template
                                     </label>
                                 </div>
                                 <div class="form-check">
-                                    <input class="form-check-input" type="radio" name="messageSource" id="useCustomMessage" value="custom">
+                                    <input class="form-check-input" type="radio" name="messageSource"
+                                        id="useCustomMessage" value="custom">
                                     <label class="form-check-label" for="useCustomMessage">
                                         Custom Message
                                     </label>
@@ -264,22 +309,26 @@
                             <div class="mb-3">
                                 <label for="recipientsFile" class="form-label">Upload Recipients Excel File</label>
                                 <input type="file" class="form-control" id="recipientsFile" accept=".xlsx, .xls, .csv">
-                                <div class="form-text">Excel file should contain phone numbers and any variables used in the template</div>
+                                <div class="form-text">Excel file should contain phone numbers and any variables used in
+                                    the template</div>
                             </div>
 
                             <div class="mb-3">
-                                <label for="mediaFileBulk" class="form-label">Media Attachment (optional - same for all recipients)</label>
+                                <label for="mediaFileBulk" class="form-label">Media Attachment (optional - same for all
+                                    recipients)</label>
                                 <input type="file" class="form-control" id="mediaFileBulk">
                                 <div id="mediaPreviewBulk" class="mt-2"></div>
                             </div>
 
                             <div class="mb-3">
                                 <label for="mediaCaptionBulk" class="form-label">Media Caption (optional)</label>
-                                <input type="text" class="form-control" id="mediaCaptionBulk" placeholder="Caption for your media">
+                                <input type="text" class="form-control" id="mediaCaptionBulk"
+                                    placeholder="Caption for your media">
                             </div>
 
                             <div class="mb-3">
-                                <label for="delayBetweenMessages" class="form-label">Delay between messages (seconds)</label>
+                                <label for="delayBetweenMessages" class="form-label">Delay between messages
+                                    (seconds)</label>
                                 <input type="number" class="form-control" id="delayBetweenMessages" value="5" min="1">
                             </div>
 
@@ -294,7 +343,8 @@
                             <div id="bulkProgress" class="progress-container" style="display: none;">
                                 <h5>Progress</h5>
                                 <div class="progress">
-                                    <div id="bulkProgressBar" class="progress-bar" role="progressbar" style="width: 0%">0%</div>
+                                    <div id="bulkProgressBar" class="progress-bar" role="progressbar" style="width: 0%">
+                                        0%</div>
                                 </div>
                                 <div id="bulkProgressText" class="mt-2">Ready to start</div>
                                 <div id="bulkStats" class="mt-2"></div>
@@ -304,26 +354,35 @@
 
                     <!-- Templates Tab -->
                     <div class="tab-pane fade" id="templates">
-                        <h2>Manage Templates</h2>
+                           <h2 class="text-light">Manage Templates</h2>
+                        <hr/>
+                   
                         <div class="message-form">
                             <div class="mb-3">
                                 <label for="templateName" class="form-label">Template Name</label>
-                                <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                                <input type="text" class="form-control" id="templateName"
+                                    placeholder="Enter template name">
                             </div>
                             <div class="mb-3">
                                 <label for="templateContent" class="form-label">Template Content</label>
                                 <textarea class="form-control" id="templateContent" rows="5"></textarea>
                                 <div class="form-text">
-                                    Use variables like {{name}}, {{date}}, etc. These will be replaced with values from your Excel file.
+                                    Use variables like {{name}}, {{date}}, etc. These will be replaced with values from
+                                    your Excel file.
                                 </div>
                             </div>
                             <div class="mb-3">
-                                <button id="addVariableBtn" class="btn btn-sm btn-outline-secondary">Add Variable</button>
+                                <button id="addVariableBtn" class="btn btn-sm btn-outline-secondary">Add
+                                    Variable</button>
                                 <div class="btn-group ms-2" id="commonVariables">
-                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable" data-var="{{name}}">Name</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable" data-var="{{date}}">Date</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable" data-var="{{time}}">Time</button>
-                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable" data-var="{{email}}">Email</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
+                                        data-var="{{name}}">Name</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
+                                        data-var="{{date}}">Date</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
+                                        data-var="{{time}}">Time</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
+                                        data-var="{{email}}">Email</button>
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -356,7 +415,8 @@
                                 <div class="mb-3">
                                     <div id="testVariablesInputs"></div>
                                 </div>
-                                <button id="generateTestBtn" class="btn btn-sm btn-primary">Generate Test Message</button>
+                                <button id="generateTestBtn" class="btn btn-sm btn-primary">Generate Test
+                                    Message</button>
                                 <div class="template-preview mt-3" id="testTemplatePreview">
                                     <p class="text-muted">Test message will appear here</p>
                                 </div>
@@ -366,12 +426,14 @@
 
                     <!-- Accounts Tab -->
                     <div class="tab-pane fade" id="accounts">
-                        <h2>Manage Accounts</h2>
+                        <h2 class="text-light">Manage Accounts</h2>
+                        <hr/>
                         <div class="message-form">
                             <div class="mb-3">
                                 <label for="newAccountId" class="form-label">Create New Account Session</label>
                                 <div class="input-group">
-                                    <input type="text" class="form-control" id="newAccountId" placeholder="Enter account ID">
+                                    <input type="number" class="form-control" id="newAccountId"
+                                        placeholder="Enter account ID (Without &lt; space &gt;)">
                                     <button class="btn btn-primary" id="createAccountBtn">Create</button>
                                 </div>
                             </div>
@@ -389,7 +451,8 @@
 
                     <!-- Logs Tab -->
                     <div class="tab-pane fade" id="logs">
-                        <h2>Event Logs</h2>
+                        <h2 class="text-light">Event Logs</h2>
+                        <hr/>
                         <div class="event-log" id="eventLog">
                             <div>System initialized...</div>
                         </div>
@@ -401,7 +464,8 @@
     </div>
 
     <!-- Template Test Modal -->
-    <div class="modal fade" id="testTemplateModal" tabindex="-1" aria-labelledby="testTemplateModalLabel" aria-hidden="true">
+    <div class="modal fade" id="testTemplateModal" tabindex="-1" aria-labelledby="testTemplateModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
@@ -432,7 +496,10 @@
             let currentBulkJob = null;
             let bulkJobInterval = null;
             let testTemplateModal = new bootstrap.Modal(document.getElementById('testTemplateModal'));
-
+            // Add these with your other global variables
+            let qrDisplayTime = null;
+            let qrCountdownInterval = null;
+            const QR_CODE_DELAY = 25; // Time in seconds until QR code is shown
             // DOM elements
             const qrCodeElement = document.getElementById('qrCode');
             const qrStatusElement = document.getElementById('qrStatus');
@@ -452,7 +519,6 @@
             const accountsListElement = document.getElementById('accountsList');
             const eventLogElement = document.getElementById('eventLog');
             const clearLogsBtn = document.getElementById('clearLogsBtn');
-            
             // Bulk message elements
             const useTemplateRadio = document.getElementById('useTemplate');
             const useCustomMessageRadio = document.getElementById('useCustomMessage');
@@ -474,7 +540,6 @@
             const bulkProgressBar = document.getElementById('bulkProgressBar');
             const bulkProgressText = document.getElementById('bulkProgressText');
             const bulkStats = document.getElementById('bulkStats');
-            
             // Template elements
             const templateName = document.getElementById('templateName');
             const templateContent = document.getElementById('templateContent');
@@ -489,14 +554,11 @@
             const testTemplatePreview = document.getElementById('testTemplatePreview');
             const testTemplateResult = document.getElementById('testTemplateResult');
             const commonVariables = document.getElementById('commonVariables');
-
             // Initialize event source for default account
             setupEventSource('default');
-
             // Fetch existing accounts and templates
             fetchAccounts();
             fetchTemplates();
-
             // Event listeners
             accountSelectElement.addEventListener('change', function() {
                 const selectedAccount = this.value;
@@ -504,68 +566,56 @@
                     switchAccount(selectedAccount);
                 }
             });
-
             logoutBtn.addEventListener('click', function() {
                 logoutAccount(activeAccount);
             });
-
             mediaFileElement.addEventListener('change', function(e) {
                 if (e.target.files.length > 0) {
                     uploadMedia(e.target.files[0], false);
                 }
             });
-
             mediaFileBulk.addEventListener('change', function(e) {
                 if (e.target.files.length > 0) {
                     uploadMedia(e.target.files[0], true);
                 }
             });
-
             sendMessageBtn.addEventListener('click', function() {
                 sendMessage();
             });
-
             createAccountBtn.addEventListener('click', function() {
                 createAccount();
             });
-
             clearLogsBtn.addEventListener('click', function() {
                 eventLogElement.innerHTML = '<div>Logs cleared...</div>';
             });
-
             // Bulk message event listeners
             useTemplateRadio.addEventListener('change', function() {
                 templateSection.style.display = 'block';
                 customMessageSection.style.display = 'none';
             });
-
             useCustomMessageRadio.addEventListener('change', function() {
                 templateSection.style.display = 'none';
                 customMessageSection.style.display = 'block';
             });
-
             templateSelect.addEventListener('change', function() {
                 const selectedTemplate = templates.find(t => t.name === this.value);
                 if (selectedTemplate) {
                     templatePreview.innerHTML = renderTemplatePreview(selectedTemplate.content);
                 } else {
-                    templatePreview.innerHTML = '<p class="text-muted">Template preview will appear here</p>';
+                    templatePreview.innerHTML =
+                        '<p class="text-muted">Template preview will appear here</p>';
                 }
             });
-
             previewBulkBtn.addEventListener('click', function() {
                 previewBulkMessages();
             });
-
             sendBulkBtn.addEventListener('click', function() {
                 startBulkSend();
             });
-
             // Template event listeners
             templateContent.addEventListener('input', function() {
                 detectTemplateVariables();
             });
-
             addVariableBtn.addEventListener('click', function() {
                 const varName = prompt('Enter variable name (without curly braces):');
                 if (varName) {
@@ -573,7 +623,6 @@
                     detectTemplateVariables();
                 }
             });
-
             // Add event listeners for common variables
             document.querySelectorAll('.insert-variable').forEach(btn => {
                 btn.addEventListener('click', function() {
@@ -581,97 +630,116 @@
                     detectTemplateVariables();
                 });
             });
-
             saveTemplateBtn.addEventListener('click', function() {
                 saveTemplate();
             });
-
             testTemplateBtn.addEventListener('click', function() {
                 showTestTemplateSection();
             });
-
             generateTestBtn.addEventListener('click', function() {
                 testTemplate();
             });
-
             // Functions
             function setupEventSource(accountId) {
                 console.log(`Setting up EventSource for ${accountId}`);
-                
                 // Close previous connection if exists
                 if (eventSource) {
                     console.log('Closing existing EventSource');
                     eventSource.close();
                 }
-
+                // Clear any existing countdown
+                if (qrCountdownInterval) {
+                    clearInterval(qrCountdownInterval);
+                    qrCountdownInterval = null;
+                }
                 // Setup new connection
                 const eventSourceUrl = `/api/accounts/${accountId}/events`;
                 console.log(`Connecting to SSE at ${eventSourceUrl}`);
-                
+                // Start countdown for QR code
+                qrDisplayTime = new Date();
+                qrDisplayTime.setSeconds(qrDisplayTime.getSeconds() + QR_CODE_DELAY);
+                qrCodeElement.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+                updateQrCountdown();
+                qrCountdownInterval = setInterval(updateQrCountdown, 1000);
+
+
+
+
                 eventSource = new EventSource(eventSourceUrl);
-                
                 eventSource.addEventListener('connected', function(e) {
                     const data = JSON.parse(e.data);
                     console.log('SSE Connected:', data.message);
                     logEvent('SSE', 'Connection established');
                 });
-                
-                eventSource.addEventListener('qr', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('QR code received');
-                    qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
-                    qrStatusElement.textContent = 'Scan this QR code with WhatsApp';
-                    logEvent('QR', 'New QR code generated');
-                });
+
+
+
+              eventSource.addEventListener('qr', function(e) {
+    // Clear the countdown
+    if (qrCountdownInterval) {
+        clearInterval(qrCountdownInterval);
+        qrCountdownInterval = null;
+    }
+    
+    const data = JSON.parse(e.data);
+    console.log('QR code received');
+    qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
+    qrStatusElement.textContent = 'Scan this QR code with WhatsApp';
+    logEvent('QR', 'New QR code generated');
+});
+
+
+
+
 
                 eventSource.addEventListener('ready', function(e) {
                     const data = JSON.parse(e.data);
                     console.log('Client ready');
-                    connectionStatusElement.textContent = 'Connected and ready!';
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString();
+                    const dateString = now.toLocaleDateString();
+                    connectionStatusElement.innerHTML = 'Connected and ready!<br>' +
+                        `<small>Connected at: ${timeString} on ${dateString}</small>`;
                     qrStatusElement.textContent = 'Session is active';
-                    qrCodeElement.innerHTML = '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
+                    qrCodeElement.innerHTML =
+                        '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
                     logEvent('Status', 'Client is ready');
                 });
-
                 eventSource.addEventListener('authenticated', function(e) {
                     const data = JSON.parse(e.data);
                     console.log('Client authenticated');
                     connectionStatusElement.textContent = 'Authenticated!';
                     logEvent('Status', 'Client authenticated');
                 });
-
                 eventSource.addEventListener('auth_failure', function(e) {
                     const data = JSON.parse(e.data);
                     console.log('Auth failure:', data.msg);
                     connectionStatusElement.textContent = `Authentication failed: ${data.msg}`;
-                    qrCodeElement.innerHTML = '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
+                    qrCodeElement.innerHTML =
+                        '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
                     logEvent('Error', `Authentication failed: ${data.msg}`);
                 });
-
                 eventSource.addEventListener('disconnected', function(e) {
                     const data = JSON.parse(e.data);
                     console.log('Client disconnected:', data.reason);
                     connectionStatusElement.textContent = `Disconnected: ${data.reason}`;
-                    qrCodeElement.innerHTML = '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
+                    qrCodeElement.innerHTML =
+                        '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
                     logEvent('Status', `Disconnected: ${data.reason}`);
                 });
-
                 eventSource.addEventListener('loading', function(e) {
                     const data = JSON.parse(e.data);
                     console.log(`Loading: ${data.percent}% - ${data.message}`);
                     connectionStatusElement.textContent = `Loading: ${data.percent}% - ${data.message}`;
                 });
-
                 eventSource.addEventListener('status', function(e) {
                     const data = JSON.parse(e.data);
                     console.log('Status update:', data.message);
                     logEvent('Status', data.message);
                 });
-
                 eventSource.onerror = function(e) {
                     console.error('EventSource error:', e);
                     logEvent('Error', 'EventSource connection error');
-                    
                     // Try to reconnect after 3 seconds
                     setTimeout(() => {
                         console.log('Attempting to reconnect EventSource');
@@ -679,6 +747,22 @@
                     }, 3000);
                 };
             }
+
+
+function updateQrCountdown() {
+    const now = new Date();
+    const diff = qrDisplayTime - now;
+    
+    if (diff <= 0) {
+        clearInterval(qrCountdownInterval);
+        qrCountdownInterval = null;
+        qrStatusElement.textContent = 'Generating QR code...';
+        return;
+    }
+    
+    const seconds = Math.floor(diff / 1000);
+    qrStatusElement.textContent = `QR code will be displayed in ${seconds} seconds...`;
+}
 
             function fetchAccounts() {
                 fetch('/api/accounts')
@@ -721,14 +805,12 @@
                     }
                     accountSelectElement.appendChild(option);
                 });
-
                 // Update list
                 accountsListElement.innerHTML = '';
                 accounts.forEach(account => {
                     const li = document.createElement('li');
                     li.className = 'list-group-item d-flex justify-content-between align-items-center';
                     li.textContent = account;
-                    
                     if (account === activeAccount) {
                         const badge = document.createElement('span');
                         badge.className = 'badge bg-primary rounded-pill';
@@ -741,31 +823,26 @@
                         activateBtn.addEventListener('click', () => switchAccount(account));
                         li.appendChild(activateBtn);
                     }
-                    
                     accountsListElement.appendChild(li);
                 });
             }
 
             function updateTemplatesList() {
                 templatesList.innerHTML = '';
-                
                 if (templates.length === 0) {
                     templatesList.innerHTML = '<tr><td colspan="3">No templates saved yet</td></tr>';
                     return;
                 }
-                
                 templates.forEach(template => {
                     const row = document.createElement('tr');
-                    
                     const nameCell = document.createElement('td');
                     nameCell.textContent = template.name;
-                    
                     const varsCell = document.createElement('td');
                     const vars = extractVariables(template.content);
-                    varsCell.innerHTML = vars.map(v => `<span class="template-variable">${v}</span>`).join(' ');
-                    
+                    varsCell.innerHTML = vars.map(v => `<span class="template-variable">${v}</span>`)
+                        .join(
+                            ' ');
                     const actionsCell = document.createElement('td');
-                    
                     const useBtn = document.createElement('button');
                     useBtn.className = 'btn btn-sm btn-primary me-2';
                     useBtn.textContent = 'Use';
@@ -778,7 +855,6 @@
                         templateSection.style.display = 'block';
                         customMessageSection.style.display = 'none';
                     });
-                    
                     const editBtn = document.createElement('button');
                     editBtn.className = 'btn btn-sm btn-outline-secondary me-2';
                     editBtn.textContent = 'Edit';
@@ -787,7 +863,6 @@
                         templateContent.value = template.content;
                         detectTemplateVariables();
                     });
-                    
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'btn btn-sm btn-outline-danger';
                     deleteBtn.textContent = 'Delete';
@@ -796,15 +871,12 @@
                             deleteTemplate(template.name);
                         }
                     });
-                    
                     actionsCell.appendChild(useBtn);
                     actionsCell.appendChild(editBtn);
                     actionsCell.appendChild(deleteBtn);
-                    
                     row.appendChild(nameCell);
                     row.appendChild(varsCell);
                     row.appendChild(actionsCell);
-                    
                     templatesList.appendChild(row);
                 });
             }
@@ -821,40 +893,13 @@
 
             function switchAccount(accountId) {
                 fetch('/api/accounts/activate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ accountId })
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        activeAccount = accountId;
-                        currentAccountElement.textContent = accountId;
-                        setupEventSource(accountId);
-                        fetchAccounts();
-                        logEvent('Account switched', `Active account is now ${accountId}`);
-                    } else {
-                        logEvent('Error', data.error || 'Failed to switch account');
-                    }
-                })
-                .catch(error => {
-                    logEvent('Error', error.message);
-                });
-            }
-
-            function logoutAccount(accountId) {
-                if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
-                    fetch('/api/accounts/logout', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ accountId })
+                        body: JSON.stringify({
+                            accountId
+                        })
                     })
                     .then(response => {
                         if (!response.ok) throw new Error('Network response was not ok');
@@ -862,179 +907,200 @@
                     })
                     .then(data => {
                         if (data.success) {
-                            logEvent('Logged out', `Account ${accountId} has been logged out`);
-                            if (accountId === activeAccount) {
-                                // Reset UI for logged out account
-                                qrCodeElement.innerHTML = '';
-                                qrStatusElement.textContent = 'Account logged out';
-                                connectionStatusElement.textContent = 'Logged out';
-                            }
+                            activeAccount = accountId;
+                            currentAccountElement.textContent = accountId;
+                            setupEventSource(accountId);
                             fetchAccounts();
+                            logEvent('Account switched', `Active account is now ${accountId}`);
                         } else {
-                            logEvent('Error', data.error || 'Failed to logout');
+                            logEvent('Error', data.error || 'Failed to switch account');
                         }
                     })
                     .catch(error => {
                         logEvent('Error', error.message);
                     });
+            }
+
+            function logoutAccount(accountId) {
+                if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
+                    fetch('/api/accounts/logout', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                accountId
+                            })
+                        })
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                logEvent('Logged out', `Account ${accountId} has been logged out`);
+                                if (accountId === activeAccount) {
+                                    // Reset UI for logged out account
+                                    qrCodeElement.innerHTML = '';
+                                    qrStatusElement.textContent = 'Account logged out';
+                                    connectionStatusElement.textContent = 'Logged out';
+                                }
+                                fetchAccounts();
+                            } else {
+                                logEvent('Error', data.error || 'Failed to logout');
+                            }
+                        })
+                        .catch(error => {
+                            logEvent('Error', error.message);
+                        });
                 }
             }
 
             function uploadMedia(file, isBulk) {
                 const formData = new FormData();
                 formData.append('file', file);
-
                 const statusElement = isBulk ? sendStatusElement : sendStatusElement;
                 const previewElement = isBulk ? mediaPreviewBulk : mediaPreviewElement;
                 const fileType = isBulk ? 'bulk ' : '';
-
                 statusElement.textContent = `Uploading ${fileType}media...`;
                 statusElement.className = 'mt-2 text-info';
-
                 fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        if (isBulk) {
-                            bulkMediaUrl = data.url;
-                        } else {
-                            mediaUrl = data.url;
-                        }
-                        previewElement.innerHTML = `
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            if (isBulk) {
+                                bulkMediaUrl = data.url;
+                            } else {
+                                mediaUrl = data.url;
+                            }
+                            previewElement.innerHTML = `
                             <div class="alert alert-success p-2">
                                 <small>File ready: ${file.name}</small>
                                 <img src="${data.url}" class="preview-image mt-1">
                             </div>
                         `;
-                        statusElement.textContent = `${fileType}Media uploaded successfully!`;
-                        statusElement.className = 'mt-2 text-success';
-                    } else {
-                        statusElement.textContent = `Error: ${data.error || `Failed to upload ${fileType}media`}`;
+                            statusElement.textContent = `${fileType}Media uploaded successfully!`;
+                            statusElement.className = 'mt-2 text-success';
+                        } else {
+                            statusElement.textContent =
+                                `Error: ${data.error || `Failed to upload ${fileType}media`}`;
+                            statusElement.className = 'mt-2 text-danger';
+                        }
+                    })
+                    .catch(error => {
+                        statusElement.textContent = `Error: ${error.message}`;
                         statusElement.className = 'mt-2 text-danger';
-                    }
-                })
-                .catch(error => {
-                    statusElement.textContent = `Error: ${error.message}`;
-                    statusElement.className = 'mt-2 text-danger';
-                });
+                    });
             }
 
             function sendMessage() {
                 const phone = phoneNumberElement.value.trim();
                 const message = messageTextElement.value.trim();
                 const caption = mediaCaptionElement.value.trim();
-
                 if (!phone) {
                     sendStatusElement.textContent = 'Phone number is required';
                     sendStatusElement.className = 'mt-2 text-danger';
                     return;
                 }
-
                 if (!message && !mediaUrl) {
                     sendStatusElement.textContent = 'Either message or media is required';
                     sendStatusElement.className = 'mt-2 text-danger';
                     return;
                 }
-
                 const payload = {
                     phone,
                     message
                 };
-
                 if (mediaUrl) {
                     payload.media = {
                         url: mediaUrl,
                         caption: caption
                     };
                 }
-
                 sendStatusElement.textContent = 'Sending message...';
                 sendStatusElement.className = 'mt-2 text-info';
-
                 fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        sendStatusElement.textContent = 'Message sent successfully!';
-                        sendStatusElement.className = 'mt-2 text-success';
-                        // Clear form
-                        messageTextElement.value = '';
-                        mediaFileElement.value = '';
-                        mediaCaptionElement.value = '';
-                        mediaPreviewElement.innerHTML = '';
-                        mediaUrl = null;
-                    } else {
-                        sendStatusElement.textContent = data.message || 'Failed to send message';
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            sendStatusElement.textContent = 'Message sent successfully!';
+                            sendStatusElement.className = 'mt-2 text-success';
+                            // Clear form
+                            messageTextElement.value = '';
+                            mediaFileElement.value = '';
+                            mediaCaptionElement.value = '';
+                            mediaPreviewElement.innerHTML = '';
+                            mediaUrl = null;
+                        } else {
+                            sendStatusElement.textContent = data.message || 'Failed to send message';
+                            sendStatusElement.className = 'mt-2 text-danger';
+                        }
+                    })
+                    .catch(error => {
+                        sendStatusElement.textContent = `Error: ${error.message}`;
                         sendStatusElement.className = 'mt-2 text-danger';
-                    }
-                })
-                .catch(error => {
-                    sendStatusElement.textContent = `Error: ${error.message}`;
-                    sendStatusElement.className = 'mt-2 text-danger';
-                });
+                    });
             }
 
             function createAccount() {
                 const accountId = newAccountIdElement.value.trim();
-                
                 if (!accountId) {
                     alert('Account ID is required');
                     return;
                 }
-
                 fetch('/api/accounts', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ accountId })
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        logEvent('Account created', `New account ${accountId} created`);
-                        newAccountIdElement.value = '';
-                        fetchAccounts();
-                    } else {
-                        logEvent('Error', data.error || 'Failed to create account');
-                        alert(data.error || 'Failed to create account');
-                    }
-                })
-                .catch(error => {
-                    logEvent('Error', error.message);
-                    alert(error.message);
-                });
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            accountId
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            logEvent('Account created', `New account ${accountId} created`);
+                            newAccountIdElement.value = '';
+                            fetchAccounts();
+                        } else {
+                            logEvent('Error', data.error || 'Failed to create account');
+                            alert(data.error || 'Failed to create account');
+                        }
+                    })
+                    .catch(error => {
+                        logEvent('Error', error.message);
+                        alert(error.message);
+                    });
             }
 
             function logEvent(type, data) {
                 const now = new Date();
                 const timeString = now.toLocaleTimeString();
                 let message = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-                
                 const eventElement = document.createElement('div');
                 eventElement.innerHTML = `<strong>[${timeString}] ${type}:</strong> ${message}`;
                 eventLogElement.appendChild(eventElement);
                 eventLogElement.scrollTop = eventLogElement.scrollHeight;
             }
-
             // Bulk message functions
             function previewBulkMessages() {
                 const file = recipientsFile.files[0];
@@ -1042,22 +1108,20 @@
                     alert('Please upload an Excel file with recipients');
                     return;
                 }
-
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     try {
                         const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
+                        const workbook = XLSX.read(data, {
+                            type: 'array'
+                        });
                         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                         const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                        
                         if (jsonData.length === 0) {
                             alert('No data found in the Excel file');
                             return;
                         }
-
                         bulkRecipients = jsonData;
-                        
                         // Get message template or custom message
                         let messageTemplate = '';
                         if (useTemplateRadio.checked) {
@@ -1075,15 +1139,13 @@
                                 return;
                             }
                         }
-
                         // Generate preview
                         bulkPreviewContent.innerHTML = '';
                         const previewCount = Math.min(10, bulkRecipients.length);
-                        
                         for (let i = 0; i < previewCount; i++) {
                             const recipient = bulkRecipients[i];
-                            let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient.number || recipient.Number || recipient.NUMBER;
-                            
+                            let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient
+                                .number || recipient.Number || recipient.NUMBER;
                             if (!phone) {
                                 // Try to find phone number in any column
                                 for (const key in recipient) {
@@ -1093,13 +1155,10 @@
                                     }
                                 }
                             }
-                            
                             if (!phone) {
                                 continue;
                             }
-                            
                             let message = replaceTemplateVariables(messageTemplate, recipient);
-                            
                             const previewItem = document.createElement('div');
                             previewItem.className = 'preview-item';
                             previewItem.innerHTML = `
@@ -1108,11 +1167,10 @@
                             `;
                             bulkPreviewContent.appendChild(previewItem);
                         }
-                        
                         bulkPreview.style.display = 'block';
                         sendBulkBtn.disabled = false;
-                        
-                        logEvent('Bulk Preview', `Loaded ${bulkRecipients.length} recipients, showing first ${previewCount}`);
+                        logEvent('Bulk Preview',
+                            `Loaded ${bulkRecipients.length} recipients, showing first ${previewCount}`);
                     } catch (error) {
                         console.error('Error processing Excel file:', error);
                         alert('Error processing Excel file: ' + error.message);
@@ -1127,11 +1185,9 @@
                     alert('No recipients loaded. Please preview first.');
                     return;
                 }
-
                 if (!confirm(`Are you sure you want to send ${bulkRecipients.length} messages?`)) {
                     return;
                 }
-
                 currentBulkJob = {
                     total: bulkRecipients.length,
                     sent: 0,
@@ -1139,16 +1195,13 @@
                     currentIndex: 0,
                     isRunning: true
                 };
-
                 bulkProgress.style.display = 'block';
                 bulkProgressBar.style.width = '0%';
                 bulkProgressBar.textContent = '0%';
                 bulkProgressText.textContent = 'Starting bulk send...';
                 bulkStats.innerHTML = `Total: ${currentBulkJob.total} | Sent: 0 | Failed: 0`;
-
                 sendBulkBtn.disabled = true;
                 previewBulkBtn.disabled = true;
-
                 // Start sending messages with delay
                 bulkJobInterval = setInterval(processNextBulkMessage, delayBetweenMessages.value * 1000);
                 processNextBulkMessage(); // Start immediately for first message
@@ -1163,11 +1216,11 @@
                     previewBulkBtn.disabled = false;
                     return;
                 }
-
                 const recipient = bulkRecipients[currentBulkJob.currentIndex];
                 currentBulkJob.currentIndex++;
-                
-                let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient.number || recipient.Number || recipient.NUMBER;
+                let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient.number ||
+                    recipient
+                    .Number || recipient.NUMBER;
                 if (!phone) {
                     // Try to find phone number in any column
                     for (const key in recipient) {
@@ -1177,14 +1230,12 @@
                         }
                     }
                 }
-                
                 if (!phone) {
                     currentBulkJob.failed++;
                     updateBulkProgress();
                     logEvent('Bulk Error', `Recipient ${currentBulkJob.currentIndex} has no phone number`);
                     return;
                 }
-                
                 // Get message
                 let message = '';
                 if (useTemplateRadio.checked) {
@@ -1194,55 +1245,53 @@
                 } else {
                     message = replaceTemplateVariables(bulkMessageText.value, recipient);
                 }
-
                 const payload = {
                     phone,
                     message
                 };
-
                 if (bulkMediaUrl) {
                     payload.media = {
                         url: bulkMediaUrl,
                         caption: mediaCaptionBulk.value
                     };
                 }
-
-                bulkProgressText.textContent = `Sending to ${phone} (${currentBulkJob.currentIndex}/${currentBulkJob.total})`;
-
+                bulkProgressText.textContent =
+                    `Sending to ${phone} (${currentBulkJob.currentIndex}/${currentBulkJob.total})`;
                 fetch('/api/send-message', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                })
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        currentBulkJob.sent++;
-                        logEvent('Bulk Sent', `Message sent to ${phone}`);
-                    } else {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            currentBulkJob.sent++;
+                            logEvent('Bulk Sent', `Message sent to ${phone}`);
+                        } else {
+                            currentBulkJob.failed++;
+                            logEvent('Bulk Error',
+                                `Failed to send to ${phone}: ${data.message || 'Unknown error'}`);
+                        }
+                        updateBulkProgress();
+                    })
+                    .catch(error => {
                         currentBulkJob.failed++;
-                        logEvent('Bulk Error', `Failed to send to ${phone}: ${data.message || 'Unknown error'}`);
-                    }
-                    updateBulkProgress();
-                })
-                .catch(error => {
-                    currentBulkJob.failed++;
-                    logEvent('Bulk Error', `Failed to send to ${phone}: ${error.message}`);
-                    updateBulkProgress();
-                });
+                        logEvent('Bulk Error', `Failed to send to ${phone}: ${error.message}`);
+                        updateBulkProgress();
+                    });
             }
 
             function updateBulkProgress() {
                 const progress = Math.round((currentBulkJob.currentIndex / currentBulkJob.total) * 100);
                 bulkProgressBar.style.width = `${progress}%`;
                 bulkProgressBar.textContent = `${progress}%`;
-                bulkStats.innerHTML = `Total: ${currentBulkJob.total} | Sent: ${currentBulkJob.sent} | Failed: ${currentBulkJob.failed}`;
-                
+                bulkStats.innerHTML =
+                    `Total: ${currentBulkJob.total} | Sent: ${currentBulkJob.sent} | Failed: ${currentBulkJob.failed}`;
                 if (currentBulkJob.currentIndex >= currentBulkJob.total) {
                     bulkProgressText.textContent = 'Bulk send completed!';
                     clearInterval(bulkJobInterval);
@@ -1250,86 +1299,78 @@
                     previewBulkBtn.disabled = false;
                 }
             }
-
             // Template functions
             function detectTemplateVariables() {
                 const content = templateContent.value;
                 const variables = extractVariables(content);
-                
-                templateVariables.innerHTML = variables.length > 0 
-                    ? variables.map(v => `<span class="template-variable">${v}</span>`).join(' ')
-                    : 'No variables detected';
+                templateVariables.innerHTML = variables.length > 0 ?
+                    variables.map(v => `<span class="template-variable">${v}</span>`).join(' ') :
+                    'No variables detected';
             }
 
             function extractVariables(content) {
                 const regex = /\{\{([^}]+)\}\}/g;
                 const matches = [];
                 let match;
-                
                 while ((match = regex.exec(content)) !== null) {
                     if (!matches.includes(match[1])) {
                         matches.push(match[1]);
                     }
                 }
-                
                 return matches;
             }
 
             function replaceTemplateVariables(template, variables) {
                 return template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-                    return variables[varName] || variables[varName.toLowerCase()] || variables[varName.toUpperCase()] || '';
+                    return variables[varName] || variables[varName.toLowerCase()] || variables[varName
+                        .toUpperCase()] || '';
                 });
             }
 
             function renderTemplatePreview(content) {
                 const variables = extractVariables(content);
                 let preview = content;
-                
                 variables.forEach(v => {
-                    preview = preview.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'), `<span class="template-variable">{{${v}}}</span>`);
+                    preview = preview.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'),
+                        `<span class="template-variable">{{${v}}}</span>`);
                 });
-                
                 return preview;
             }
 
             function saveTemplate() {
                 const name = templateName.value.trim();
                 const content = templateContent.value.trim();
-                
                 if (!name) {
                     alert('Template name is required');
                     return;
                 }
-                
                 if (!content) {
                     alert('Template content is required');
                     return;
                 }
-                
                 // Check if template with this name already exists
                 const existingIndex = templates.findIndex(t => t.name === name);
-                
                 if (existingIndex >= 0) {
                     // Update existing template
                     templates[existingIndex].content = content;
                 } else {
                     // Add new template
-                    templates.push({ name, content });
+                    templates.push({
+                        name,
+                        content
+                    });
                 }
-                
                 // Save to localStorage (in a real app, you would save to your backend)
                 localStorage.setItem('whatsappTemplates', JSON.stringify(templates));
-                
                 // Update UI
                 updateTemplatesList();
                 updateTemplateDropdown();
-                
                 // Clear form
                 templateName.value = '';
                 templateContent.value = '';
                 templateVariables.innerHTML = 'No variables detected';
-                
-                logEvent('Template Saved', `Template "${name}" saved with ${extractVariables(content).length} variables`);
+                logEvent('Template Saved',
+                    `Template "${name}" saved with ${extractVariables(content).length} variables`);
             }
 
             function deleteTemplate(name) {
@@ -1346,10 +1387,8 @@
                     alert('Please enter template content first');
                     return;
                 }
-                
                 const variables = extractVariables(content);
                 testVariablesInputs.innerHTML = '';
-                
                 if (variables.length === 0) {
                     testVariablesInputs.innerHTML = '<p>No variables in this template</p>';
                 } else {
@@ -1363,7 +1402,6 @@
                         testVariablesInputs.appendChild(div);
                     });
                 }
-                
                 testTemplateSection.style.display = 'block';
             }
 
@@ -1371,15 +1409,12 @@
                 const content = templateContent.value;
                 const variables = extractVariables(content);
                 const testData = {};
-                
                 variables.forEach(v => {
                     const input = document.getElementById(`var_${v}`);
                     testData[v] = input ? input.value : '';
                 });
-                
                 const result = replaceTemplateVariables(content, testData);
                 testTemplatePreview.innerHTML = result;
-                
                 // Also show in modal
                 testTemplateResult.innerHTML = `
                     <h6>Test Result:</h6>
@@ -1389,7 +1424,6 @@
                         <pre>${JSON.stringify(testData, null, 2)}</pre>
                     </div>
                 `;
-                
                 testTemplateModal.show();
             }
 
@@ -1398,7 +1432,6 @@
                 const endPos = textarea.selectionEnd;
                 const beforeText = textarea.value.substring(0, startPos);
                 const afterText = textarea.value.substring(endPos, textarea.value.length);
-                
                 textarea.value = beforeText + text + afterText;
                 textarea.selectionStart = startPos + text.length;
                 textarea.selectionEnd = startPos + text.length;
@@ -1407,4 +1440,5 @@
         });
     </script>
 </body>
+
 </html>
