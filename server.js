@@ -150,7 +150,10 @@ class WhatsAppManager {
       console.log("QR RECEIVED", qr);
       try {
         const qrImage = await qrcode.toDataURL(qr);
-        this.emitEvent(accountId, "qr", { qr: qrImage });
+        this.emitEvent(accountId, "qr", {
+          qr: qrImage,
+          timestamp: new Date().toISOString(),
+        });
       } catch (err) {
         console.error("QR generation error:", err);
         this.emitEvent(accountId, "error", {
