@@ -5,23 +5,21 @@ const FileStore = require("session-file-store")(session);
 const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
+const { Client, LocalAuth } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
 const xlsx = require("xlsx");
 const cors = require("cors");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
+// Initialize Express app
 const app = express();
-// Configuration
-const PORT = process.env.PORT || 3000;
-const SESSIONS_DIR = path.join(__dirname, "sessions");
-const UPLOADS_DIR = path.join(__dirname, "uploads");
-const LOGS_DIR = path.join(__dirname, "logs");
+const PORT = process.env.PORT || 3001;
 
-// Ensure directories exist
-[UPLOADS_DIR, LOGS_DIR, SESSIONS_DIR].forEach((dir) => {
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-});
+// Database Models
+const Account = require("./models/Account");
+const Template = require("./models/Template");
+const Message = require("./models/Message");
 
 // Configure multer for file uploads
 const upload = multer({
@@ -41,15 +39,19 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
-// Directories to ensure exist
-const dirs = ["public", "sessions", "uploads", "logs"];
-
-// Create them if not exist
-dirs.forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+// Create required directories
+if (!fs.existsSync("sessions")) {
+  fs.mkdirSync("sessions");
+}
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
+if (!fs.existsSync("data")) {
+  fs.mkdirSync("data");
+}
+if (!fs.existsSync(".wwebjs_auth")) {
+  fs.mkdirSync(".wwebjs_auth");
+}
 
 // Session configuration
 app.use(
@@ -62,297 +64,301 @@ app.use(
   })
 );
 
-// Helper function
+// Initialize WhatsApp clients and SSE clients
+const whatsappClients = {};
+const sseClients = {};
+
+// Connect to MongoDB
+mongoose
+  .connect(
+    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/whatsapp_tool",
+    {
+      serverSelectionTimeoutMS: 5000,
+    }
+  )
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  });
+
+// Helper functions
 function ensureDirectoryExists(directory) {
   if (!fs.existsSync(directory)) {
     fs.mkdirSync(directory, { recursive: true });
   }
 }
 
-// Load templates from file
-function loadTemplates() {
-  ensureDirectoryExists("data");
-  try {
-    if (fs.existsSync("data/templates.json")) {
-      return JSON.parse(fs.readFileSync("data/templates.json", "utf-8"));
-    }
-  } catch (err) {
-    console.error("Error loading templates:", err);
-  }
-  return [];
-}
+// Broadcast event to all SSE clients for an account
+function broadcastEvent(accountId, type, data) {
+  if (!sseClients[accountId]) return;
 
-// Save templates to file
-function saveTemplates(templates) {
-  ensureDirectoryExists("data");
-  fs.writeFileSync("data/templates.json", JSON.stringify(templates, null, 2));
-}
-
-// WhatsApp Client Manager
-class WhatsAppManager {
-  constructor() {
-    this.clients = new Map();
-    this.activeAccount = "default";
-    this.eventStreams = new Map();
-  }
-
-  async initializeClient(accountId) {
-    if (this.clients.has(accountId)) {
-      console.log(`Client for ${accountId} already exists`);
-      return this.clients.get(accountId);
-    }
-
-    const sessionPath = path.join(SESSIONS_DIR, accountId);
-    if (!fs.existsSync(sessionPath))
-      fs.mkdirSync(sessionPath, { recursive: true });
-
-    console.log(`Initializing client for account ${accountId}`);
-
-    const client = new Client({
-      authStrategy: new LocalAuth({
-        clientId: accountId,
-        dataPath: sessionPath,
-      }),
-      puppeteer: {
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-        ],
-      },
-      webVersionCache: {
-        type: "remote",
-        remotePath:
-          "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
-      },
-    });
-
-    this.clients.set(accountId, client);
-    this.setupEventHandlers(client, accountId);
-
+  sseClients[accountId].forEach((client) => {
     try {
-      await client.initialize();
-      console.log(`Client initialized for ${accountId}`);
-      return client;
+      client.res.write(`event: ${type}\n`);
+      client.res.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (err) {
-      console.error(`Failed to initialize client for ${accountId}:`, err);
-      throw err;
+      console.error("Error sending SSE:", err);
     }
-  }
-
-  setupEventHandlers(client, accountId) {
-    client.on("qr", async (qr) => {
-      console.log("QR RECEIVED", qr);
-      try {
-        const qrImage = await qrcode.toDataURL(qr);
-        this.emitEvent(accountId, "qr", {
-          qr: qrImage,
-          timestamp: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.error("QR generation error:", err);
-        this.emitEvent(accountId, "error", {
-          message: "Failed to generate QR code",
-        });
-      }
-    });
-
-    client.on("ready", () => {
-      console.log("Client is ready!");
-      this.emitEvent(accountId, "ready", {});
-      this.emitEvent(accountId, "status", {
-        message: "WhatsApp client is ready!",
-      });
-    });
-
-    client.on("authenticated", () => {
-      console.log("Authenticated!");
-      this.emitEvent(accountId, "authenticated", {});
-      this.emitEvent(accountId, "status", {
-        message: "Successfully authenticated!",
-      });
-    });
-
-    client.on("auth_failure", (msg) => {
-      console.log("Authentication failure:", msg);
-      this.emitEvent(accountId, "auth_failure", { msg });
-      this.emitEvent(accountId, "status", {
-        message: `Authentication failed: ${msg}`,
-      });
-    });
-
-    client.on("disconnected", (reason) => {
-      console.log("Disconnected:", reason);
-      this.emitEvent(accountId, "disconnected", { reason });
-      this.emitEvent(accountId, "status", {
-        message: `Client disconnected: ${reason}`,
-      });
-    });
-
-    client.on("loading_screen", (percent, message) => {
-      console.log(`Loading: ${percent}% - ${message}`);
-      this.emitEvent(accountId, "loading", { percent, message });
-    });
-
-    client.on("message", (msg) => {
-      this.emitEvent(accountId, "message", {
-        from: msg.from,
-        body: msg.body,
-        timestamp: msg.timestamp,
-        isMedia: msg.hasMedia,
-        type: msg.type,
-      });
-    });
-  }
-
-  emitEvent(accountId, event, data) {
-    console.log(`Emitting event ${event} for ${accountId}`);
-    if (this.eventStreams.has(accountId)) {
-      const res = this.eventStreams.get(accountId);
-      try {
-        res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-      } catch (err) {
-        console.error("Error writing to event stream:", err);
-        this.eventStreams.delete(accountId);
-      }
-    }
-    this.logEvent(accountId, event, data);
-  }
-
-  logEvent(accountId, event, data) {
-    const logFile = path.join(LOGS_DIR, `${accountId}.log`);
-    const timestamp = new Date().toISOString();
-    const logEntry = `[${timestamp}] ${event}: ${JSON.stringify(data)}\n`;
-    fs.appendFileSync(logFile, logEntry, { flag: "a" });
-  }
-
-  createEventStream(accountId, res) {
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    });
-
-    // Send initial connection message
-    res.write(
-      `event: connected\ndata: ${JSON.stringify({
-        message: "SSE Connected",
-      })}\n\n`
-    );
-
-    this.eventStreams.set(accountId, res);
-
-    res.on("close", () => {
-      console.log(`SSE connection closed for ${accountId}`);
-      this.eventStreams.delete(accountId);
-      res.end();
-    });
-  }
-
-  async logout(accountId) {
-    const client = this.clients.get(accountId);
-    if (client) {
-      try {
-        await client.logout();
-        await client.destroy();
-        this.clients.delete(accountId);
-
-        const sessionPath = path.join(SESSIONS_DIR, accountId);
-        if (fs.existsSync(sessionPath)) {
-          fs.rmSync(sessionPath, { recursive: true, force: true });
-        }
-        console.log(`Successfully logged out ${accountId}`);
-      } catch (err) {
-        console.error(`Error logging out ${accountId}:`, err);
-        throw err;
-      }
-    }
-  }
+  });
 }
 
-const whatsappManager = new WhatsAppManager();
+// Initialize WhatsApp client for an account
+function initializeWhatsAppClient(accountId) {
+  if (whatsappClients[accountId]) {
+    return whatsappClients[accountId];
+  }
 
-// Initialize default client
-whatsappManager.initializeClient("default").catch((err) => {
-  console.error("Failed to initialize default client:", err);
-});
+  console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
-// API Routes
+  const client = new Client({
+    authStrategy: new LocalAuth({ clientId: accountId }),
+    puppeteer: {
+      headless: true,
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-accelerated-2d-canvas",
+        "--no-first-run",
+        "--no-zygote",
+        "--disable-gpu",
+      ],
+    },
+  });
+
+  whatsappClients[accountId] = client;
+
+  client.on("qr", async (qr) => {
+    console.log(`QR received for ${accountId}`);
+    try {
+      const qrImage = await qrcode.toDataURL(qr);
+      broadcastEvent(accountId, "qr", { qr: qrImage });
+      await Account.findOneAndUpdate(
+        { accountId },
+        { status: "initialized", lastActivity: Date.now() },
+        { upsert: true }
+      );
+    } catch (err) {
+      console.error("Error generating QR code:", err);
+      broadcastEvent(accountId, "error", {
+        message: "Failed to generate QR code",
+      });
+    }
+  });
+
+  client.on("ready", async () => {
+    console.log(`Client ${accountId} is ready!`);
+    broadcastEvent(accountId, "ready", { message: "Client is ready" });
+    try {
+      await Account.findOneAndUpdate(
+        { accountId },
+        { status: "ready", lastActivity: Date.now() }
+      );
+    } catch (err) {
+      console.error("Error updating account status:", err);
+    }
+  });
+
+  client.on("authenticated", async () => {
+    console.log(`Client ${accountId} authenticated`);
+    broadcastEvent(accountId, "authenticated", {
+      message: "Client authenticated",
+    });
+    try {
+      await Account.findOneAndUpdate(
+        { accountId },
+        { status: "authenticated", lastActivity: Date.now() }
+      );
+    } catch (err) {
+      console.error("Error updating account status:", err);
+    }
+  });
+
+  client.on("auth_failure", (msg) => {
+    console.log(`Client ${accountId} auth failure`, msg);
+    broadcastEvent(accountId, "auth_failure", { message: "Auth failure", msg });
+  });
+
+  client.on("disconnected", async (reason) => {
+    console.log(`Client ${accountId} disconnected`, reason);
+    broadcastEvent(accountId, "disconnected", { reason });
+    try {
+      await Account.findOneAndUpdate(
+        { accountId },
+        { status: "disconnected", lastActivity: Date.now() }
+      );
+    } catch (err) {
+      console.error("Error updating account status:", err);
+    }
+    delete whatsappClients[accountId];
+  });
+
+  client.on("loading_screen", (percent, message) => {
+    broadcastEvent(accountId, "loading", { percent, message });
+  });
+
+  client.on("message", (msg) => {
+    console.log("Received message:", msg.body);
+  });
+
+  client.on("error", (err) => {
+    console.error(`Client error for ${accountId}:`, err);
+    broadcastEvent(accountId, "error", { message: err.message });
+  });
+
+  client.initialize().catch((err) => {
+    console.error(`Failed to initialize client for ${accountId}:`, err);
+  });
+
+  return client;
+}
+
+// Routes
+
+// Get all accounts
 app.get("/api/accounts", async (req, res) => {
   try {
-    const accounts = fs
-      .readdirSync(SESSIONS_DIR)
-      .filter((f) => fs.statSync(path.join(SESSIONS_DIR, f)).isDirectory());
+    const accounts = await Account.find().sort({ createdAt: -1 });
     res.json({ success: true, accounts });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
+// Create new account
 app.post("/api/accounts", async (req, res) => {
+  const { accountId } = req.body;
+
+  if (!accountId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID is required" });
+  }
+
   try {
-    const { accountId } = req.body;
-    if (!accountId) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Account ID is required" });
+    // Check if account already exists
+    const existingAccount = await Account.findOne({ accountId });
+    if (existingAccount) {
+      return res.status(400).json({
+        success: false,
+        error: "Account with this ID already exists",
+      });
     }
 
-    await whatsappManager.initializeClient(accountId);
-    res.json({ success: true });
+    // Create new account in DB
+    const newAccount = new Account({ accountId });
+    await newAccount.save();
+
+    // Initialize the client
+    initializeWhatsAppClient(accountId);
+
+    res.json({
+      success: true,
+      message: `Account ${accountId} initialized`,
+      account: newAccount,
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.post("/api/accounts/activate", async (req, res) => {
-  try {
-    const { accountId } = req.body;
-    if (!accountId) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Account ID is required" });
-    }
+// Activate account
+app.post("/api/accounts/activate", (req, res) => {
+  const { accountId } = req.body;
 
-    await whatsappManager.initializeClient(accountId);
-    whatsappManager.activeAccount = accountId;
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  if (!accountId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID is required" });
   }
+
+  // Initialize the client if not already done
+  initializeWhatsAppClient(accountId);
+
+  res.json({ success: true, message: `Account ${accountId} activated` });
 });
 
+// Logout account
 app.post("/api/accounts/logout", async (req, res) => {
-  try {
-    const { accountId } = req.body;
-    if (!accountId) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Account ID is required" });
-    }
+  const { accountId } = req.body;
 
-    await whatsappManager.logout(accountId);
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+  if (!accountId) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID is required" });
+  }
+
+  if (whatsappClients[accountId]) {
+    try {
+      await whatsappClients[accountId].destroy();
+      delete whatsappClients[accountId];
+
+      // Remove session file
+      const sessionFile = path.join(
+        __dirname,
+        ".wwebjs_auth",
+        `${accountId}-session.json`
+      );
+      if (fs.existsSync(sessionFile)) {
+        fs.unlinkSync(sessionFile);
+      }
+
+      // Update account status
+      await Account.findOneAndUpdate(
+        { accountId },
+        { status: "disconnected", lastActivity: Date.now() }
+      );
+
+      res.json({ success: true, message: `Account ${accountId} logged out` });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  } else {
+    res.json({ success: true, message: `No active session for ${accountId}` });
   }
 });
 
+// SSE endpoint for account events
 app.get("/api/accounts/:accountId/events", (req, res) => {
-  const { accountId } = req.params;
-  whatsappManager.createEventStream(accountId, res);
+  const accountId = req.params.accountId;
+
+  // Set headers for SSE
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
+  // Create a new client for this connection
+  const clientId = Date.now();
+  if (!sseClients[accountId]) {
+    sseClients[accountId] = [];
+  }
+
+  sseClients[accountId].push({
+    id: clientId,
+    res,
+  });
+
+  // Send initial connected event
+  res.write(`event: connected\n`);
+  res.write(`data: ${JSON.stringify({ message: "Connected to SSE" })}\n\n`);
+
+  // Initialize the client if not already done
+  initializeWhatsAppClient(accountId);
+
+  // Handle client disconnect
+  req.on("close", () => {
+    console.log(`Client ${clientId} disconnected from SSE`);
+    sseClients[accountId] = sseClients[accountId].filter(
+      (client) => client.id !== clientId
+    );
+  });
 });
 
 // Send message
 app.post("/api/send-message", async (req, res) => {
   let { phone, message, media, accountId = "default" } = req.body;
 
-  // Ensure phone is a string
   phone = String(phone || "");
 
   if (!phone) {
@@ -367,7 +373,7 @@ app.post("/api/send-message", async (req, res) => {
       .json({ success: false, error: "Either message or media is required" });
   }
 
-  const client = whatsappManager.clients.get(accountId);
+  const client = whatsappClients[accountId];
   if (!client) {
     return res.status(400).json({
       success: false,
@@ -376,27 +382,30 @@ app.post("/api/send-message", async (req, res) => {
   }
 
   try {
-    // Format phone number (remove any non-digit characters)
     let formattedPhone = phone.replace(/\D/g, "");
 
-    // Validate phone number
     if (formattedPhone.length < 10) {
       return res
         .status(400)
         .json({ success: false, error: "Invalid phone number" });
     }
 
-    // Add country code if missing (example for India)
-    if (!formattedPhone.startsWith("91") && formattedPhone.length >= 10) {
-      formattedPhone = "91" + formattedPhone;
+    if (!formattedPhone.startsWith("55") && formattedPhone.length >= 10) {
+      formattedPhone = "55" + formattedPhone;
     }
 
     formattedPhone = formattedPhone + "@c.us";
 
     let response;
+    let messageRecord = new Message({
+      accountId,
+      phone: formattedPhone,
+      message,
+      media,
+      status: "sent",
+    });
 
     if (media?.url) {
-      // Send media message
       const mediaPath = path.join(__dirname, media.url);
       if (!fs.existsSync(mediaPath)) {
         return res.status(400).json({
@@ -404,18 +413,33 @@ app.post("/api/send-message", async (req, res) => {
           error: "Media file not found",
         });
       }
-      const mediaFile = await MessageMedia.fromFilePath(mediaPath);
-      response = await client.sendMessage(formattedPhone, mediaFile, {
+      response = await client.sendMessage(formattedPhone, {
+        media: mediaPath,
         caption: message || media.caption || "",
       });
     } else {
-      // Send text message
       response = await client.sendMessage(formattedPhone, message);
     }
+
+    // Update message status based on response if needed
+    messageRecord.status = "delivered";
+    await messageRecord.save();
 
     res.json({ success: true, message: "Message sent", response });
   } catch (err) {
     console.error("Error sending message:", err);
+
+    // Save failed message attempt
+    const messageRecord = new Message({
+      accountId,
+      phone: formattedPhone,
+      message,
+      media,
+      status: "failed",
+      error: err.message,
+    });
+    await messageRecord.save();
+
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -445,14 +469,20 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   }
 });
 
+// Template management routes
+
 // Get all templates
-app.get("/api/templates", (req, res) => {
-  const templates = loadTemplates();
-  res.json({ success: true, templates });
+app.get("/api/templates", async (req, res) => {
+  try {
+    const templates = await Template.find().sort({ createdAt: -1 });
+    res.json({ success: true, templates });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Create new template
-app.post("/api/templates", (req, res) => {
+app.post("/api/templates", async (req, res) => {
   const { name, content } = req.body;
 
   if (!name || !content) {
@@ -461,23 +491,21 @@ app.post("/api/templates", (req, res) => {
       .json({ success: false, error: "Both name and content are required" });
   }
 
-  const templates = loadTemplates();
-  const newTemplate = {
-    id: Date.now().toString(),
-    name,
-    content,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+  try {
+    const newTemplate = new Template({
+      name,
+      content,
+    });
 
-  templates.push(newTemplate);
-  saveTemplates(templates);
-
-  res.json({ success: true, template: newTemplate });
+    await newTemplate.save();
+    res.json({ success: true, template: newTemplate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Update template
-app.put("/api/templates/:id", (req, res) => {
+app.put("/api/templates/:id", async (req, res) => {
   const { id } = req.params;
   const { name, content } = req.body;
 
@@ -487,43 +515,46 @@ app.put("/api/templates/:id", (req, res) => {
       .json({ success: false, error: "Both name and content are required" });
   }
 
-  const templates = loadTemplates();
-  const templateIndex = templates.findIndex((t) => t.id === id);
+  try {
+    const updatedTemplate = await Template.findByIdAndUpdate(
+      id,
+      {
+        name,
+        content,
+        updatedAt: Date.now(),
+      },
+      { new: true }
+    );
 
-  if (templateIndex === -1) {
-    return res
-      .status(404)
-      .json({ success: false, error: "Template not found" });
+    if (!updatedTemplate) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Template not found" });
+    }
+
+    res.json({ success: true, template: updatedTemplate });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  templates[templateIndex] = {
-    ...templates[templateIndex],
-    name,
-    content,
-    updatedAt: new Date().toISOString(),
-  };
-
-  saveTemplates(templates);
-
-  res.json({ success: true, template: templates[templateIndex] });
 });
 
 // Delete template
-app.delete("/api/templates/:id", (req, res) => {
+app.delete("/api/templates/:id", async (req, res) => {
   const { id } = req.params;
 
-  const templates = loadTemplates();
-  const filteredTemplates = templates.filter((t) => t.id !== id);
+  try {
+    const deletedTemplate = await Template.findByIdAndDelete(id);
 
-  if (filteredTemplates.length === templates.length) {
-    return res
-      .status(404)
-      .json({ success: false, error: "Template not found" });
+    if (!deletedTemplate) {
+      return res
+        .status(404)
+        .json({ success: false, error: "Template not found" });
+    }
+
+    res.json({ success: true, message: "Template deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  saveTemplates(filteredTemplates);
-
-  res.json({ success: true, message: "Template deleted" });
 });
 
 // Serve frontend
@@ -539,8 +570,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Sessions directory: ${SESSIONS_DIR}`);
-  console.log(`Uploads directory: ${UPLOADS_DIR}`);
-  console.log(`Logs directory: ${LOGS_DIR}`);
+  console.log(`Server running on port ${PORT}`);
+  // Initialize default client
+  initializeWhatsAppClient("default");
 });

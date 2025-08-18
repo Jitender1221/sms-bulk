@@ -616,31 +616,28 @@
                 </div>
             </div>
 
-            <!-- Accounts Tab -->
-            <div class="tab-pane fade" id="accounts">
-                <h2 class="text-light">Manage Accounts</h2>
-                <hr/>
-                <div class="message-form">
-                    <div class="mb-3">
-                        <label for="newAccountId" class="form-label">Create New Account Session</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="newAccountId"
-                                placeholder="Enter account ID (Without space)">
-                            <button class="btn btn-primary" id="createAccountBtn">Create</button>
+             <!-- Accounts Tab -->
+                    <div class="tab-pane fade" id="accounts">
+                        <h2>Manage Accounts</h2>
+                        <div class="message-form">
+                            <div class="mb-3">
+                                <label for="newAccountId" class="form-label">Create New Account Session</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="newAccountId" placeholder="Enter account ID">
+                                    <button class="btn btn-primary" id="createAccountBtn">Create</button>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <h5>Existing Accounts</h5>
+                                <ul class="list-group" id="accountsList">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        default
+                                        <span class="badge bg-primary rounded-pill">Active</span>
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
-                        <div id="accountIdError" class="text-danger mt-1" style="display: none;"></div>
                     </div>
-                    <div class="mb-3">
-                        <h5>Existing Accounts</h5>
-                        <ul class="list-group" id="accountsList">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                default
-                                <span class="badge bg-primary rounded-pill">Active</span>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
 
             <!-- Logs Tab -->
             <div class="tab-pane fade" id="logs">
@@ -1050,42 +1047,45 @@
             }
         }
 
-        function updateAccountList(accounts) {
-            // Update dropdown
-            accountSelectElement.innerHTML = '';
-            accounts.forEach(account => {
-                const option = document.createElement('option');
-                option.value = account;
-                option.textContent = account;
-                if (account === activeAccount) {
-                    option.selected = true;
-                }
-                accountSelectElement.appendChild(option);
-            });
+           function updateAccountList(accounts) {
+                // Update dropdown
+                accountSelectElement.innerHTML = '';
+                accounts.forEach(account => {
+                    const option = document.createElement('option');
+                    option.value = account.accountId || account;
+                    option.textContent = account.accountId || account;
+                    if ((account.accountId || account) === activeAccount) {
+                        option.selected = true;
+                    }
+                    accountSelectElement.appendChild(option);
+                });
 
-            // Update list
-            accountsListElement.innerHTML = '';
-            accounts.forEach(account => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                li.textContent = account;
-
-                if (account === activeAccount) {
-                    const badge = document.createElement('span');
-                    badge.className = 'badge bg-primary rounded-pill';
-                    badge.textContent = 'Active';
-                    li.appendChild(badge);
-                } else {
-                    const activateBtn = document.createElement('button');
-                    activateBtn.className = 'btn btn-sm btn-outline-primary';
-                    activateBtn.textContent = 'Activate';
-                    activateBtn.addEventListener('click', () => switchAccount(account));
-                    li.appendChild(activateBtn);
-                }
-
-                accountsListElement.appendChild(li);
-            });
-        }
+                // Update list
+                accountsListElement.innerHTML = '';
+                accounts.forEach(account => {
+                    const accountId = account.accountId || account;
+                    const status = account.status || 'unknown';
+                    
+                    const li = document.createElement('li');
+                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                    li.textContent = accountId;
+                    
+                    if (accountId === activeAccount) {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-primary rounded-pill';
+                        badge.textContent = 'Active';
+                        li.appendChild(badge);
+                    } else {
+                        const activateBtn = document.createElement('button');
+                        activateBtn.className = 'btn btn-sm btn-outline-primary';
+                        activateBtn.textContent = 'Activate';
+                        activateBtn.addEventListener('click', () => switchAccount(accountId));
+                        li.appendChild(activateBtn);
+                    }
+                    
+                    accountsListElement.appendChild(li);
+                });
+            }
 
         function updateTemplatesList() {
             templatesList.innerHTML = '';
@@ -1162,14 +1162,12 @@
         }
 
         function switchAccount(accountId) {
-            fetch('/api/accounts/activate', {
+                fetch('/api/accounts/activate', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        accountId
-                    })
+                    body: JSON.stringify({ accountId })
                 })
                 .then(response => {
                     if (!response.ok) throw new Error('Network response was not ok');
@@ -1189,18 +1187,16 @@
                 .catch(error => {
                     logEvent('Error', error.message);
                 });
-        }
+            }
 
         function logoutAccount(accountId) {
-            if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
-                fetch('/api/accounts/logout', {
+                if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
+                    fetch('/api/accounts/logout', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({
-                            accountId
-                        })
+                        body: JSON.stringify({ accountId })
                     })
                     .then(response => {
                         if (!response.ok) throw new Error('Network response was not ok');
@@ -1223,59 +1219,47 @@
                     .catch(error => {
                         logEvent('Error', error.message);
                     });
-            }
-        }
-
-        function createAccount() {
-            const accountId = newAccountIdElement.value.trim();
-            accountIdErrorElement.style.display = 'none';
-
-            // Validate account ID
-            if (!accountId) {
-                accountIdErrorElement.textContent = 'Account ID is required';
-                accountIdErrorElement.style.display = 'block';
-                newAccountIdElement.focus();
-                return;
-            }
-
-            if (accountId.includes(' ')) {
-                accountIdErrorElement.textContent = 'Account ID cannot contain spaces';
-                accountIdErrorElement.style.display = 'block';
-                newAccountIdElement.focus();
-                return;
-            }
-
-            // If validation passes, proceed with account creation
-            fetch('/api/accounts', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    accountId
-                })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    logEvent('Account created', `New account ${accountId} created`);
-                    newAccountIdElement.value = '';
-                    fetchAccounts();
-                } else {
-                    accountIdErrorElement.textContent = data.error || 'Failed to create account';
-                    accountIdErrorElement.style.display = 'block';
-                    logEvent('Error', data.error || 'Failed to create account');
                 }
-            })
-            .catch(error => {
-                accountIdErrorElement.textContent = error.message;
-                accountIdErrorElement.style.display = 'block';
-                logEvent('Error', error.message);
-            });
-        }
+            }
+
+             function createAccount() {
+                const accountId = newAccountIdElement.value.trim();
+                
+                if (!accountId) {
+                    alert('Account ID is required');
+                    return;
+                }
+
+                fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ accountId })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        logEvent('Account created', `New account ${accountId} created`);
+                        newAccountIdElement.value = '';
+                        fetchAccounts();
+                        // Automatically switch to new account
+                        switchAccount(accountId);
+                    } else {
+                        logEvent('Error', data.error || 'Failed to create account');
+                        alert(data.error || 'Failed to create account');
+                    }
+                })
+                .catch(error => {
+                    logEvent('Error', error.message);
+                    alert(error.message);
+                });
+            }
+
+
 
         function uploadMedia(file, isBulk) {
             const formData = new FormData();
@@ -1323,39 +1307,40 @@
                 });
         }
 
-        function sendMessage() {
-            const phone = phoneNumberElement.value.trim();
-            const message = messageTextElement.value.trim();
-            const caption = mediaCaptionElement.value.trim();
+             function sendMessage() {
+                const phone = phoneNumberElement.value.trim();
+                const message = messageTextElement.value.trim();
+                const caption = mediaCaptionElement.value.trim();
 
-            if (!phone) {
-                sendStatusElement.textContent = 'Phone number is required';
-                sendStatusElement.className = 'mt-2 text-danger';
-                return;
-            }
+                if (!phone) {
+                    sendStatusElement.textContent = 'Phone number is required';
+                    sendStatusElement.className = 'mt-2 text-danger';
+                    return;
+                }
 
-            if (!message && !mediaUrl) {
-                sendStatusElement.textContent = 'Either message or media is required';
-                sendStatusElement.className = 'mt-2 text-danger';
-                return;
-            }
+                if (!message && !mediaUrl) {
+                    sendStatusElement.textContent = 'Either message or media is required';
+                    sendStatusElement.className = 'mt-2 text-danger';
+                    return;
+                }
 
-            const payload = {
-                phone,
-                message
-            };
-
-            if (mediaUrl) {
-                payload.media = {
-                    url: mediaUrl,
-                    caption: caption
+                const payload = {
+                    phone,
+                    message,
+                    accountId: activeAccount
                 };
-            }
 
-            sendStatusElement.textContent = 'Sending message...';
-            sendStatusElement.className = 'mt-2 text-info';
+                if (mediaUrl) {
+                    payload.media = {
+                        url: mediaUrl,
+                        caption: caption
+                    };
+                }
 
-            fetch('/api/send-message', {
+                sendStatusElement.textContent = 'Sending message...';
+                sendStatusElement.className = 'mt-2 text-info';
+
+                fetch('/api/send-message', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1385,7 +1370,7 @@
                     sendStatusElement.textContent = `Error: ${error.message}`;
                     sendStatusElement.className = 'mt-2 text-danger';
                 });
-        }
+            }
 
         function logEvent(type, data) {
             const now = new Date();
