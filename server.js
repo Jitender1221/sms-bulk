@@ -40,18 +40,11 @@ app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
 // Create required directories
-if (!fs.existsSync("sessions")) {
-  fs.mkdirSync("sessions");
-}
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
-if (!fs.existsSync("data")) {
-  fs.mkdirSync("data");
-}
-if (!fs.existsSync(".wwebjs_auth")) {
-  fs.mkdirSync(".wwebjs_auth");
-}
+["./sessions", "./uploads", "./data", "./.wwebjs_auth"].forEach((dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+});
 
 // Session configuration
 app.use(
@@ -99,6 +92,10 @@ function broadcastEvent(accountId, type, data) {
       client.res.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (err) {
       console.error("Error sending SSE:", err);
+      // Remove the client if there's an error
+      sseClients[accountId] = sseClients[accountId].filter(
+        (c) => c.id !== client.id
+      );
     }
   });
 }
@@ -209,6 +206,9 @@ function initializeWhatsAppClient(accountId) {
 
   client.initialize().catch((err) => {
     console.error(`Failed to initialize client for ${accountId}:`, err);
+    broadcastEvent(accountId, "error", {
+      message: `Initialization failed: ${err.message}`,
+    });
   });
 
   return client;
@@ -402,12 +402,18 @@ app.post("/api/send-message", async (req, res) => {
       phone: formattedPhone,
       message,
       media,
-      status: "sent",
+      status: "sending",
     });
+
+    await messageRecord.save(); // Save immediately with "sending" status
 
     if (media?.url) {
       const mediaPath = path.join(__dirname, media.url);
       if (!fs.existsSync(mediaPath)) {
+        messageRecord.status = "failed";
+        messageRecord.error = "Media file not found";
+        await messageRecord.save();
+
         return res.status(400).json({
           success: false,
           error: "Media file not found",
@@ -423,6 +429,7 @@ app.post("/api/send-message", async (req, res) => {
 
     // Update message status based on response if needed
     messageRecord.status = "delivered";
+    messageRecord.messageId = response.id.id;
     await messageRecord.save();
 
     res.json({ success: true, message: "Message sent", response });
