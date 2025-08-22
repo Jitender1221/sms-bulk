@@ -268,6 +268,11 @@
             background-color: #fff3cd;
             color: #856404;
         }
+        
+        .status-qr {
+            background-color: #cce5ff;
+            color: #004085;
+        }
     </style>
 </head>
 
@@ -838,8 +843,10 @@
                         connectionStatusElement.classList.add('status-disconnected');
                         break;
                     case 'initializing':
-                    case 'qr':
                         connectionStatusElement.classList.add('status-initializing');
+                        break;
+                    case 'qr':
+                        connectionStatusElement.classList.add('status-qr');
                         break;
                 }
             }
