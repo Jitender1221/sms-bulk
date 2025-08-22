@@ -1,12 +1,12 @@
 {
-  "name": "otp",
+  "name": "whatsapp-web-client",
   "version": "1.0.0",
-  "main": "index.js",
- "scripts": {
-  "start": "node server.js",
-  "dev": "nodemon server.js",
-  "build": "echo \"No build step configured\""
-},
+  "description": "WhatsApp Web Client for bulk messaging",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
