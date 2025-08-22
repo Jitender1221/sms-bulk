@@ -10,13 +10,13 @@ const qrcode = require("qrcode");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const fileUpload = require("express-fileupload");
 
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database Models (create these files or define schemas here)
-// For now, let's define basic schemas inline
+// Database Models (simplified schemas)
 const accountSchema = new mongoose.Schema({
   accountId: { type: String, required: true, unique: true },
   status: { type: String, default: "initialized" },
@@ -74,6 +74,7 @@ app.use(
 );
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "10mb" }));
+app.use(fileUpload());
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
@@ -132,13 +133,12 @@ function broadcastEvent(accountId, type, data) {
   });
 }
 
-// Initialize WhatsApp client for an account
 function initializeWhatsAppClient(accountId) {
   if (whatsappClients[accountId]) {
     return whatsappClients[accountId];
   }
 
-  console.log(`⚡ Initializing WhatsApp client for account: ${accountId}`);
+  console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
@@ -151,86 +151,67 @@ function initializeWhatsAppClient(accountId) {
         "--disable-accelerated-2d-canvas",
         "--no-first-run",
         "--no-zygote",
+        "--single-process",
         "--disable-gpu",
       ],
+    },
+    webVersionCache: {
+      type: "remote",
+      remotePath:
+        "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
     },
   });
 
   whatsappClients[accountId] = client;
 
-  client.on("qr", async (qr) => {
-    console.log(`📲 QR received for ${accountId}`);
-    try {
-      const qrImage = await qrcode.toDataURL(qr);
-      broadcastEvent(accountId, "qr", { qr: qrImage });
-      await Account.findOneAndUpdate(
-        { accountId },
-        { status: "initialized", lastActivity: Date.now() },
-        { upsert: true, new: true }
-      );
-    } catch (err) {
-      console.error("Error generating QR code:", err);
-      broadcastEvent(accountId, "error", {
-        message: "Failed to generate QR code",
-      });
-    }
-  });
+  // If session already exists, immediately tell frontend "connected"
+  const authDir = path.join(__dirname, ".wwebjs_auth", `session-${accountId}`);
+  if (fs.existsSync(authDir)) {
+    broadcastEvent(accountId, "connected", {
+      message: "Session found, connecting quickly...",
+    });
+  }
 
-  client.on("ready", async () => {
-    console.log(`✅ Client ${accountId} is ready!`);
-    broadcastEvent(accountId, "ready", { message: "Client is ready" });
-    await Account.findOneAndUpdate(
-      { accountId },
-      { status: "ready", lastActivity: Date.now() }
-    );
+  client.on("qr", async (qr) => {
+    console.log(`QR received for ${accountId}`);
+    const qrImage = await qrcode.toDataURL(qr);
+    broadcastEvent(accountId, "qr", { qr: qrImage });
   });
 
   client.on("authenticated", async () => {
-    console.log(`🔑 Client ${accountId} authenticated`);
-    broadcastEvent(accountId, "authenticated", {
-      message: "Client authenticated",
+    console.log(`Client ${accountId} authenticated`);
+    broadcastEvent(accountId, "connected", {
+      message: "Authenticated, please wait...",
     });
     await Account.findOneAndUpdate(
       { accountId },
-      { status: "authenticated", lastActivity: Date.now() }
+      { status: "authenticated", lastActivity: new Date() },
+      { upsert: true, new: true }
     );
   });
 
-  client.on("auth_failure", (msg) => {
-    console.log(`❌ Client ${accountId} auth failure`, msg);
-    broadcastEvent(accountId, "auth_failure", { message: "Auth failure", msg });
-  });
-
-  client.on("disconnected", async (reason) => {
-    console.log(`⚠️ Client ${accountId} disconnected`, reason);
-    broadcastEvent(accountId, "disconnected", { reason });
+  client.on("ready", async () => {
+    console.log(`Client ${accountId} is ready!`);
+    broadcastEvent(accountId, "ready", { message: "✅ Connected and ready" });
     await Account.findOneAndUpdate(
       { accountId },
-      { status: "disconnected", lastActivity: Date.now() }
+      { status: "ready", lastActivity: new Date() },
+      { upsert: true, new: true }
     );
-    delete whatsappClients[accountId];
-  });
-
-  client.on("message", (msg) => {
-    console.log(`💬 [${accountId}] ${msg.from}: ${msg.body}`);
-  });
-
-  client.on("error", (err) => {
-    console.error(`Client error for ${accountId}:`, err);
-    broadcastEvent(accountId, "error", { message: err.message });
   });
 
   client.initialize().catch((err) => {
     console.error(`Failed to initialize client for ${accountId}:`, err);
-    broadcastEvent(accountId, "error", {
-      message: `Initialization failed: ${err.message}`,
-    });
+    broadcastEvent(accountId, "error", { message: err.message });
   });
 
   return client;
 }
 
-/* ================== ROUTES ================== */
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.json({ success: true, message: "Server is running" });
+});
 
 // Get all accounts
 app.get("/api/accounts", async (req, res) => {
@@ -310,7 +291,7 @@ app.post("/api/accounts/logout", async (req, res) => {
 
       await Account.findOneAndUpdate(
         { accountId },
-        { status: "disconnected", lastActivity: Date.now() }
+        { status: "disconnected", lastActivity: new Date() }
       );
 
       res.json({ success: true, message: `Account ${accountId} logged out` });
@@ -322,6 +303,31 @@ app.post("/api/accounts/logout", async (req, res) => {
   }
 });
 
+// Refresh QR code
+app.post("/api/accounts/:accountId/refresh", (req, res) => {
+  const { accountId } = req.params;
+
+  if (!whatsappClients[accountId]) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Client not initialized" });
+  }
+
+  // Force a fresh authentication by resetting the client
+  if (whatsappClients[accountId]) {
+    whatsappClients[accountId]
+      .destroy()
+      .then(() => {
+        delete whatsappClients[accountId];
+        initializeWhatsAppClient(accountId);
+        res.json({ success: true, message: "QR refresh initiated" });
+      })
+      .catch((err) => {
+        res.status(500).json({ success: false, error: err.message });
+      });
+  }
+});
+
 // SSE endpoint for account events
 app.get("/api/accounts/:accountId/events", (req, res) => {
   const { accountId } = req.params;
@@ -330,26 +336,30 @@ app.get("/api/accounts/:accountId/events", (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Access-Control-Allow-Origin", "*");
+  res.flushHeaders();
 
   const clientId = Date.now();
-  if (!sseClients[accountId]) sseClients[accountId] = [];
+  if (!sseClients[accountId]) {
+    sseClients[accountId] = [];
+  }
 
   sseClients[accountId].push({ id: clientId, res });
 
+  // Send initial connected event
   res.write(`event: connected\n`);
   res.write(`data: ${JSON.stringify({ message: "Connected to SSE" })}\n\n`);
 
+  // Initialize the client if not already done
   initializeWhatsAppClient(accountId);
 
   req.on("close", () => {
     console.log(`Client ${clientId} disconnected from SSE`);
     sseClients[accountId] = sseClients[accountId].filter(
-      (c) => c.id !== clientId
+      (client) => client.id !== clientId
     );
   });
 });
 
-// Send message
 // Send message
 app.post("/api/send-message", async (req, res) => {
   let { phone, message, media, accountId = "default" } = req.body;
@@ -427,23 +437,38 @@ app.post("/api/send-message", async (req, res) => {
 });
 
 // File upload
-app.post("/api/upload", upload.single("file"), (req, res) => {
-  if (!req.file)
+app.post("/api/upload", (req, res) => {
+  if (!req.files || !req.files.file) {
     return res.status(400).json({ success: false, error: "No file uploaded" });
+  }
 
-  try {
+  const file = req.files.file;
+  const uploadDir = path.join(__dirname, "uploads");
+
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const filename = `${Date.now()}-${file.name}`;
+  const filepath = path.join(uploadDir, filename);
+
+  file.mv(filepath, (err) => {
+    if (err) {
+      console.error("Error uploading file:", err);
+      return res
+        .status(500)
+        .json({ success: false, error: "Failed to upload file" });
+    }
+
     res.json({
       success: true,
-      url: `/uploads/${req.file.filename}`,
-      originalName: req.file.originalname,
+      url: `/uploads/${filename}`,
+      originalName: file.name,
     });
-  } catch (err) {
-    console.error("Error uploading file:", err);
-    res.status(500).json({ success: false, error: "Failed to upload file" });
-  }
+  });
 });
 
-// Template CRUD
+// Get message templates
 app.get("/api/templates", async (req, res) => {
   try {
     const templates = await Template.find().sort({ createdAt: -1 });
@@ -480,7 +505,7 @@ app.put("/api/templates/:id", async (req, res) => {
   try {
     const updated = await Template.findByIdAndUpdate(
       id,
-      { name, content, updatedAt: Date.now() },
+      { name, content, updatedAt: new Date() },
       { new: true }
     );
     if (!updated)
@@ -517,8 +542,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Internal server error" });
 });
 
+// Initialize default client on startup
+initializeWhatsAppClient("default");
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  initializeWhatsAppClient("default"); // Auto-init default client
+  console.log(`📱 WhatsApp Web Client available at http://localhost:${PORT}`);
 });
