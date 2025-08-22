@@ -863,100 +863,132 @@
                 testTemplate();
             });
             // Functions
-            function setupEventSource(accountId) {
-                console.log(`Setting up EventSource for ${accountId}`);
-                // Close previous connection if exists
-                if (eventSource) {
-                    console.log('Closing existing EventSource');
-                    eventSource.close();
-                }
-                // Clear any existing countdown
-                if (qrCountdownInterval) {
-                    clearInterval(qrCountdownInterval);
-                    qrCountdownInterval = null;
-                }
-                // Setup new connection
-                const eventSourceUrl = `/api/accounts/${accountId}/events`;
-                console.log(`Connecting to SSE at ${eventSourceUrl}`);
-                // Start countdown for QR code
-                qrDisplayTime = new Date();
-                qrDisplayTime.setSeconds(qrDisplayTime.getSeconds() + QR_CODE_DELAY);
-                qrCodeElement.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
-                updateQrCountdown();
-                qrCountdownInterval = setInterval(updateQrCountdown, 1000);
-                eventSource = new EventSource(eventSourceUrl);
-                eventSource.addEventListener('connected', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('SSE Connected:', data.message);
-                    logEvent('SSE', 'Connection established');
-                });
-                eventSource.addEventListener('qr', function(e) {
-                    // Clear the countdown
-                    if (qrCountdownInterval) {
-                        clearInterval(qrCountdownInterval);
-                        qrCountdownInterval = null;
-                    }
-                    const data = JSON.parse(e.data);
-                    console.log('QR code received');
-                    qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
-                    qrStatusElement.textContent = 'Scan this QR code with WhatsApp';
-                    logEvent('QR', 'New QR code generated');
-                });
-                eventSource.addEventListener('ready', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('Client ready');
-                    const now = new Date();
-                    const timeString = now.toLocaleTimeString();
-                    const dateString = now.toLocaleDateString();
-                    connectionStatusElement.innerHTML = 'Connected and ready!<br>' +
-                        `<small>Connected at: ${timeString} on ${dateString}</small>`;
-                    qrStatusElement.textContent = 'Session is active';
-                    qrCodeElement.innerHTML =
-                        '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
-                    logEvent('Status', 'Client is ready');
-                });
-                eventSource.addEventListener('authenticated', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('Client authenticated');
-                    connectionStatusElement.textContent = 'Authenticated!';
-                    logEvent('Status', 'Client authenticated');
-                });
-                eventSource.addEventListener('auth_failure', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('Auth failure:', data.msg);
-                    connectionStatusElement.textContent = `Authentication failed: ${data.msg}`;
-                    qrCodeElement.innerHTML =
-                        '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
-                    logEvent('Error', `Authentication failed: ${data.msg}`);
-                });
-                eventSource.addEventListener('disconnected', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('Client disconnected:', data.reason);
-                    connectionStatusElement.textContent = `Disconnected: ${data.reason}`;
-                    qrCodeElement.innerHTML =
-                        '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
-                    logEvent('Status', `Disconnected: ${data.reason}`);
-                });
-                eventSource.addEventListener('loading', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log(`Loading: ${data.percent}% - ${data.message}`);
-                    connectionStatusElement.textContent = `Loading: ${data.percent}% - ${data.message}`;
-                });
-                eventSource.addEventListener('status', function(e) {
-                    const data = JSON.parse(e.data);
-                    console.log('Status update:', data.message);
-                    logEvent('Status', data.message);
-                });
-                eventSource.onerror = function(e) {
-                    console.error('EventSource error:', e);
-                    logEvent('Error', 'EventSource connection error');
-                    // Try to reconnect after 3 seconds
-                    setTimeout(() => {
-                        console.log('Attempting to reconnect EventSource');
-                        setupEventSource(accountId);
-                    }, 3000);
-                };
-            }
+           function setupEventSource(accountId) {
+    console.log(`Setting up EventSource for ${accountId}`);
+
+    // Close previous connection if exists
+    if (eventSource) {
+        console.log("Closing existing EventSource");
+        eventSource.close();
+        eventSource = null;
+    }
+
+    // Clear any existing countdown
+    if (qrCountdownInterval) {
+        clearInterval(qrCountdownInterval);
+        qrCountdownInterval = null;
+    }
+
+    // Setup new SSE connection
+    const eventSourceUrl = `/api/accounts/${accountId}/events`;
+    console.log(`Connecting to SSE at ${eventSourceUrl}`);
+    eventSource = new EventSource(eventSourceUrl);
+
+    // --- Events ---
+    eventSource.addEventListener("connected", function (e) {
+        const data = JSON.parse(e.data);
+        console.log("SSE Connected:", data.message);
+
+        // Show loading only if no QR yet
+        qrCodeElement.innerHTML =
+            '<div class="spinner-border text-primary" role="status"></div>';
+        qrStatusElement.textContent = "Connecting...";
+
+        connectionStatusElement.textContent = "SSE Connected";
+        logEvent("SSE", "Connection established");
+    });
+
+    eventSource.addEventListener("qr", function (e) {
+        // Stop countdown
+        if (qrCountdownInterval) {
+            clearInterval(qrCountdownInterval);
+            qrCountdownInterval = null;
+        }
+        const data = JSON.parse(e.data);
+        console.log("QR code received");
+
+        qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
+        qrStatusElement.textContent = "Scan this QR code with WhatsApp";
+        connectionStatusElement.textContent = "Waiting for authentication...";
+        logEvent("QR", "New QR code generated");
+    });
+
+    eventSource.addEventListener("authenticated", function (e) {
+        const data = JSON.parse(e.data);
+        console.log("Client authenticated");
+
+        connectionStatusElement.textContent = "Authenticated!";
+        qrStatusElement.textContent = "Please wait...";
+        logEvent("Status", "Client authenticated");
+    });
+
+    eventSource.addEventListener("ready", function (e) {
+        const data = JSON.parse(e.data);
+        console.log("Client ready");
+
+        const now = new Date();
+        connectionStatusElement.innerHTML =
+            "✅ Connected and ready!<br>" +
+            `<small>Connected at: ${now.toLocaleTimeString()} on ${now.toLocaleDateString()}</small>`;
+
+        qrStatusElement.textContent = "Session is active";
+        qrCodeElement.innerHTML =
+            '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
+        logEvent("Status", "Client is ready");
+    });
+
+    eventSource.addEventListener("auth_failure", function (e) {
+        const data = JSON.parse(e.data);
+        console.log("Auth failure:", data.msg);
+
+        connectionStatusElement.textContent = `Authentication failed: ${data.msg}`;
+        qrStatusElement.textContent = "Please refresh to retry";
+        qrCodeElement.innerHTML =
+            '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
+        logEvent("Error", `Authentication failed: ${data.msg}`);
+    });
+
+    eventSource.addEventListener("disconnected", function (e) {
+        const data = JSON.parse(e.data);
+        console.log("Client disconnected:", data.reason);
+
+        connectionStatusElement.textContent = `Disconnected: ${data.reason}`;
+        qrCodeElement.innerHTML =
+            '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
+        qrStatusElement.textContent = "Session lost, please reconnect";
+        logEvent("Status", `Disconnected: ${data.reason}`);
+    });
+
+    eventSource.addEventListener("loading", function (e) {
+        const data = JSON.parse(e.data);
+        console.log(`Loading: ${data.percent}% - ${data.message}`);
+        connectionStatusElement.textContent = `Loading: ${data.percent}% - ${data.message}`;
+    });
+
+    eventSource.addEventListener("status", function (e) {
+        const data = JSON.parse(e.data);
+        console.log("Status update:", data.message);
+        logEvent("Status", data.message);
+    });
+
+    eventSource.onerror = function (e) {
+        console.error("EventSource error:", e);
+        logEvent("Error", "EventSource connection error");
+
+        // Close old eventSource before reconnect
+        if (eventSource) {
+            eventSource.close();
+            eventSource = null;
+        }
+
+        // Reconnect after 3s
+        setTimeout(() => {
+            console.log("Attempting to reconnect EventSource");
+            setupEventSource(accountId);
+        }, 3000);
+    };
+}
+
 
             function updateQrCountdown() {
                 const now = new Date();
