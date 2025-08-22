@@ -13,28 +13,65 @@ const mongoose = require("mongoose");
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3000;
 
-// Database Models
-const Account = require("./models/Account");
-const Template = require("./models/Template");
-const Message = require("./models/Message");
+// Database Models (create these files or define schemas here)
+// For now, let's define basic schemas inline
+const accountSchema = new mongoose.Schema({
+  accountId: { type: String, required: true, unique: true },
+  status: { type: String, default: "initialized" },
+  lastActivity: { type: Date, default: Date.now },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const templateSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+const messageSchema = new mongoose.Schema({
+  accountId: { type: String, required: true },
+  phone: { type: String, required: true },
+  message: String,
+  media: Object,
+  status: { type: String, default: "sending" },
+  error: String,
+  messageId: String,
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Account = mongoose.model("Account", accountSchema);
+const Template = mongoose.model("Template", templateSchema);
+const Message = mongoose.model("Message", messageSchema);
 
 // Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = 'uploads/';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
 const upload = multer({
-  dest: "uploads/",
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
 // Middleware
-app.use(
-  cors({
-    origin: ["http://localhost:8000", "http://127.0.0.1:8000"],
-    credentials: true,
-  })
-);
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors({
+  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  credentials: true
+}));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
@@ -127,7 +164,7 @@ function initializeWhatsAppClient(accountId) {
       await Account.findOneAndUpdate(
         { accountId },
         { status: "initialized", lastActivity: Date.now() },
-        { upsert: true }
+        { upsert: true, new: true }
       );
     } catch (err) {
       console.error("Error generating QR code:", err);
@@ -290,6 +327,7 @@ app.get("/api/accounts/:accountId/events", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("Access-Control-Allow-Origin", "*");
 
   const clientId = Date.now();
   if (!sseClients[accountId]) sseClients[accountId] = [];
@@ -335,8 +373,12 @@ app.post("/api/send-message", async (req, res) => {
       return res
         .status(400)
         .json({ success: false, error: "Invalid phone number" });
-    if (!formattedPhone.startsWith("55"))
-      formattedPhone = "55" + formattedPhone;
+    
+    // Check if the number already has country code
+    if (!formattedPhone.startsWith("91") && !formattedPhone.startsWith("55")) {
+      formattedPhone = "91" + formattedPhone; // Default to India code
+    }
+    
     formattedPhone += "@c.us";
 
     let response;
@@ -350,7 +392,10 @@ app.post("/api/send-message", async (req, res) => {
     await messageRecord.save();
 
     if (media?.url) {
-      const mediaPath = path.join(__dirname, media.url);
+      // Extract filename from URL
+      const filename = media.url.split('/').pop();
+      const mediaPath = path.join(__dirname, 'uploads', filename);
+      
       if (!fs.existsSync(mediaPath)) {
         messageRecord.status = "failed";
         messageRecord.error = "Media not found";
@@ -360,9 +405,20 @@ app.post("/api/send-message", async (req, res) => {
           .json({ success: false, error: "Media not found" });
       }
 
+      // Get file extension and mime type
+      const fileExt = path.extname(mediaPath).toLowerCase();
+      let mimeType = 'application/octet-stream';
+      
+      if (['.jpg', '.jpeg'].includes(fileExt)) mimeType = 'image/jpeg';
+      else if (fileExt === '.png') mimeType = 'image/png';
+      else if (fileExt === '.gif') mimeType = 'image/gif';
+      else if (['.mp4', '.mov'].includes(fileExt)) mimeType = 'video/mp4';
+      else if (['.pdf'].includes(fileExt)) mimeType = 'application/pdf';
+      else if (['.doc', '.docx'].includes(fileExt)) mimeType = 'application/msword';
+
       const fileData = fs.readFileSync(mediaPath);
       const msgMedia = new MessageMedia(
-        "application/octet-stream",
+        mimeType,
         fileData.toString("base64"),
         path.basename(mediaPath)
       );
@@ -400,14 +456,9 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
     return res.status(400).json({ success: false, error: "No file uploaded" });
 
   try {
-    const fileExt = path.extname(req.file.originalname);
-    const newFileName = `${req.file.filename}${fileExt}`;
-    const newPath = path.join(__dirname, "uploads", newFileName);
-    fs.renameSync(req.file.path, newPath);
-
     res.json({
       success: true,
-      url: `/uploads/${newFileName}`,
+      url: `/uploads/${req.file.filename}`,
       originalName: req.file.originalname,
     });
   } catch (err) {
