@@ -140,9 +140,12 @@ function initializeWhatsAppClient(accountId) {
 
   console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
+  const puppeteer = require("puppeteer");
+
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
+      executablePath: "/usr/bin/chromium",
       headless: true,
       args: [
         "--no-sandbox",
@@ -151,7 +154,6 @@ function initializeWhatsAppClient(accountId) {
         "--disable-accelerated-2d-canvas",
         "--no-first-run",
         "--no-zygote",
-        "--single-process",
         "--disable-gpu",
       ],
     },
@@ -161,6 +163,8 @@ function initializeWhatsAppClient(accountId) {
         "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
     },
   });
+
+  client.initialize();
 
   whatsappClients[accountId] = client;
 
