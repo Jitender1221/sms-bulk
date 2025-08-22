@@ -994,14 +994,23 @@
             }
 
             function fetchTemplates() {
-                // In a real app, this would fetch from your backend
-                // For this demo, we'll use localStorage
-                const savedTemplates = localStorage.getItem('whatsappTemplates');
-                if (savedTemplates) {
-                    templates = JSON.parse(savedTemplates);
-                    updateTemplatesList();
-                    updateTemplateDropdown();
-                }
+                fetch('/api/templates')
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            templates = data.templates;
+                            updateTemplatesList();
+                            updateTemplateDropdown();
+                        } else {
+                            logEvent('Error', data.error || 'Failed to fetch templates');
+                        }
+                    })
+                    .catch(error => {
+                        logEvent('Error', error.message);
+                    });
             }
 
             function updateAccountList(accounts) {
@@ -1081,7 +1090,7 @@
                     deleteBtn.textContent = 'Delete';
                     deleteBtn.addEventListener('click', () => {
                         if (confirm(`Delete template "${template.name}"?`)) {
-                            deleteTemplate(template.name);
+                            deleteTemplate(template._id);
                         }
                     });
                     actionsCell.appendChild(useBtn);
@@ -1564,37 +1573,54 @@
                     alert('Template content is required');
                     return;
                 }
-                // Check if template with this name already exists
-                const existingIndex = templates.findIndex(t => t.name === name);
-                if (existingIndex >= 0) {
-                    // Update existing template
-                    templates[existingIndex].content = content;
-                } else {
-                    // Add new template
-                    templates.push({
-                        name,
-                        content
-                    });
-                }
-                // Save to localStorage (in a real app, you would save to your backend)
-                localStorage.setItem('whatsappTemplates', JSON.stringify(templates));
-                // Update UI
-                updateTemplatesList();
-                updateTemplateDropdown();
-                // Clear form
-                templateName.value = '';
-                templateContent.value = '';
-                templateVariables.innerHTML = 'No variables detected';
-                logEvent('Template Saved',
-                    `Template "${name}" saved with ${extractVariables(content).length} variables`);
+                
+                fetch('/api/templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, content })
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        logEvent('Template Saved', `Template "${name}" saved`);
+                        fetchTemplates();
+                        // Clear form
+                        templateName.value = '';
+                        templateContent.value = '';
+                        templateVariables.innerHTML = 'No variables detected';
+                    } else {
+                        alert(data.error || 'Failed to save template');
+                    }
+                })
+                .catch(error => {
+                    alert('Error saving template: ' + error.message);
+                });
             }
 
-            function deleteTemplate(name) {
-                templates = templates.filter(t => t.name !== name);
-                localStorage.setItem('whatsappTemplates', JSON.stringify(templates));
-                updateTemplatesList();
-                updateTemplateDropdown();
-                logEvent('Template Deleted', `Template "${name}" deleted`);
+            function deleteTemplate(templateId) {
+                fetch(`/api/templates/${templateId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        logEvent('Template Deleted', 'Template deleted successfully');
+                        fetchTemplates();
+                    } else {
+                        alert(data.error || 'Failed to delete template');
+                    }
+                })
+                .catch(error => {
+                    alert('Error deleting template: ' + error.message);
+                });
             }
 
             function showTestTemplateSection() {
