@@ -1353,6 +1353,7 @@
                 eventLogElement.scrollTop = eventLogElement.scrollHeight;
             }
             // Bulk message functions
+// Bulk message functions
     function previewBulkMessages() {
                 const file = recipientsFile.files[0];
                 if (!file) {
@@ -1430,127 +1431,180 @@
                 };
                 reader.readAsArrayBuffer(file);
             }
-
-            function startBulkSend() {
-                if (bulkRecipients.length === 0) {
-                    alert('No recipients loaded. Please preview first.');
-                    return;
-                }
-                if (!confirm(`Are you sure you want to send ${bulkRecipients.length} messages?`)) {
-                    return;
-                }
-                currentBulkJob = {
-                    total: bulkRecipients.length,
-                    sent: 0,
-                    failed: 0,
-                    currentIndex: 0,
-                    isRunning: true
-                };
-                bulkProgress.style.display = 'block';
-                bulkProgressBar.style.width = '0%';
-                bulkProgressBar.textContent = '0%';
-                bulkProgressText.textContent = 'Starting bulk send...';
-                bulkStats.innerHTML = `Total: ${currentBulkJob.total} | Sent: 0 | Failed: 0`;
-                sendBulkBtn.disabled = true;
-                previewBulkBtn.disabled = true;
-                // Start sending messages with delay
-                bulkJobInterval = setInterval(processNextBulkMessage, delayBetweenMessages.value * 1000);
+function startBulkSend() {
+    if (bulkRecipients.length === 0) {
+        alert('No recipients loaded. Please preview first.');
+        return;
+    }
+    
+    // Check if WhatsApp client is ready
+    if (!isWhatsAppClientReady()) {
+        alert('WhatsApp client is not ready. Please wait for connection or scan QR code.');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to send ${bulkRecipients.length} messages?`)) {
+        return;
+    }
+    
+    currentBulkJob = {
+        total: bulkRecipients.length,
+        sent: 0,
+        failed: 0,
+        currentIndex: 0,
+        isRunning: true
+    };
+    
+    bulkProgress.style.display = 'block';
+    bulkProgressBar.style.width = '0%';
+    bulkProgressBar.textContent = '0%';
+    bulkProgressText.textContent = 'Starting bulk send...';
+    bulkStats.innerHTML = `Total: ${currentBulkJob.total} | Sent: 0 | Failed: 0`;
+    sendBulkBtn.disabled = true;
+    previewBulkBtn.disabled = true;
+    
+    // Start sending messages with delay
+    bulkJobInterval = setInterval(processNextBulkMessage, delayBetweenMessages.value * 1000);
                 processNextBulkMessage(); // Start immediately for first message
-            }
+}
 
-            function processNextBulkMessage() {
-                if (!currentBulkJob.isRunning || currentBulkJob.currentIndex >= bulkRecipients.length) {
-                    clearInterval(bulkJobInterval);
-                    currentBulkJob.isRunning = false;
-                    bulkProgressText.textContent = 'Bulk send completed!';
-                    sendBulkBtn.disabled = false;
-                    previewBulkBtn.disabled = false;
-                    return;
-                }
-                const recipient = bulkRecipients[currentBulkJob.currentIndex];
-                currentBulkJob.currentIndex++;
-                let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient.number ||
-                    recipient
-                    .Number || recipient.NUMBER;
-                if (!phone) {
-                    // Try to find phone number in any column
-                    for (const key in recipient) {
-                        if (/phone|number/i.test(key) && recipient[key]) {
-                            phone = recipient[key];
-                            break;
-                        }
-                    }
-                }
-                if (!phone) {
-                    currentBulkJob.failed++;
-                    updateBulkProgress();
-                    logEvent('Bulk Error', `Recipient ${currentBulkJob.currentIndex} has no phone number`);
-                    return;
-                }
-                // Get message
-                let message = '';
-                if (useTemplateRadio.checked) {
-                    const templateName = templateSelect.value;
-                    const template = templates.find(t => t.name === templateName);
-                    message = replaceTemplateVariables(template.content, recipient);
-                } else {
-                    message = replaceTemplateVariables(bulkMessageText.value, recipient);
-                }
-                const payload = {
-                    phone,
-                    message
-                };
-                if (bulkMediaUrl) {
-                    payload.media = {
-                        url: bulkMediaUrl,
-                        caption: mediaCaptionBulk.value
-                    };
-                }
-                bulkProgressText.textContent =
-                    `Sending to ${phone} (${currentBulkJob.currentIndex}/${currentBulkJob.total})`;
-                fetch('/api/send-message', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            currentBulkJob.sent++;
-                            logEvent('Bulk Sent', `Message sent to ${phone}`);
-                        } else {
-                            currentBulkJob.failed++;
-                            logEvent('Bulk Error',
-                                `Failed to send to ${phone}: ${data.message || 'Unknown error'}`);
-                        }
-                        updateBulkProgress();
-                    })
-                    .catch(error => {
-                        currentBulkJob.failed++;
-                        logEvent('Bulk Error', `Failed to send to ${phone}: ${error.message}`);
-                        updateBulkProgress();
-                    });
-            }
+  function processNextBulkMessage() {
+    if (!currentBulkJob.isRunning || currentBulkJob.currentIndex >= bulkRecipients.length) {
+        clearInterval(bulkJobInterval);
+        currentBulkJob.isRunning = false;
+        bulkProgressText.textContent = 'Bulk send completed!';
+        sendBulkBtn.disabled = false;
+        previewBulkBtn.disabled = false;
+        return;
+    }
+    
+    const recipient = bulkRecipients[currentBulkJob.currentIndex];
+    currentBulkJob.currentIndex++;
+    
+    let phone = extractPhoneNumber(recipient);
+    
+    if (!phone) {
+        currentBulkJob.failed++;
+        updateBulkProgress();
+        logEvent('Bulk Error', `Recipient ${currentBulkJob.currentIndex} has no valid phone number`);
+        return;
+    }
+    
+    // Format phone number properly
+    phone = formatPhoneNumber(phone);
+    
+    // Get message
+    let message = '';
+    if (useTemplateRadio.checked) {
+        const templateName = templateSelect.value;
+        const template = templates.find(t => t.name === templateName);
+        message = replaceTemplateVariables(template.content, recipient);
+    } else {
+        message = replaceTemplateVariables(bulkMessageText.value, recipient);
+    }
+    
+    const payload = {
+        phone: phone,
+        message: message,
+        accountId: activeAccount
+    };
+    
+    if (bulkMediaUrl) {
+        payload.media = {
+            url: bulkMediaUrl,
+            caption: mediaCaptionBulk.value
+        };
+    }
+    
+    bulkProgressText.textContent = `Sending to ${phone} (${currentBulkJob.currentIndex}/${currentBulkJob.total})`;
+    
+    fetch('/api/send-message', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            currentBulkJob.sent++;
+            logEvent('Bulk Sent', `Message sent to ${phone}`);
+        } else {
+            currentBulkJob.failed++;
+            logEvent('Bulk Error', `Failed to send to ${phone}: ${data.message || 'Unknown error'}`);
+        }
+        updateBulkProgress();
+    })
+    .catch(error => {
+        currentBulkJob.failed++;
+        logEvent('Bulk Error', `Failed to send to ${phone}: ${error.message}`);
+        updateBulkProgress();
+    });
+}
 
-            function updateBulkProgress() {
-                const progress = Math.round((currentBulkJob.currentIndex / currentBulkJob.total) * 100);
-                bulkProgressBar.style.width = `${progress}%`;
-                bulkProgressBar.textContent = `${progress}%`;
-                bulkStats.innerHTML =
-                    `Total: ${currentBulkJob.total} | Sent: ${currentBulkJob.sent} | Failed: ${currentBulkJob.failed}`;
-                if (currentBulkJob.currentIndex >= currentBulkJob.total) {
-                    bulkProgressText.textContent = 'Bulk send completed!';
-                    clearInterval(bulkJobInterval);
-                    sendBulkBtn.disabled = false;
-                    previewBulkBtn.disabled = false;
-                }
+function updateBulkProgress() {
+    const progress = Math.round((currentBulkJob.currentIndex / currentBulkJob.total) * 100);
+    bulkProgressBar.style.width = `${progress}%`;
+    bulkProgressBar.textContent = `${progress}%`;
+    bulkStats.innerHTML = `Total: ${currentBulkJob.total} | Sent: ${currentBulkJob.sent} | Failed: ${currentBulkJob.failed}`;
+    
+    if (currentBulkJob.currentIndex >= currentBulkJob.total) {
+        bulkProgressText.textContent = 'Bulk send completed!';
+        clearInterval(bulkJobInterval);
+        sendBulkBtn.disabled = false;
+        previewBulkBtn.disabled = false;
+    }
+}
+
+// Helper functions
+function extractPhoneNumber(recipient) {
+    // Try various possible phone number field names
+    const phoneFields = ['phone', 'Phone', 'PHONE', 'number', 'Number', 'NUMBER', 'mobile', 'Mobile', 'MOBILE', 'contact', 'Contact', 'CONTACT'];
+    
+    for (const field of phoneFields) {
+        if (recipient[field] && typeof recipient[field] === 'string') {
+            return recipient[field];
+        }
+    }
+    
+    // If no standard field found, try to find any field that looks like a phone number
+    for (const key in recipient) {
+        if (recipient[key] && typeof recipient[key] === 'string') {
+            const value = recipient[key].toString().replace(/\D/g, '');
+            if (value.length >= 10) { // Basic phone number validation
+                return recipient[key];
             }
-            
+        }
+    }
+    
+    return null;
+}
+
+function formatPhoneNumber(phone) {
+    // Remove all non-digit characters
+    let cleaned = phone.toString().replace(/\D/g, '');
+    
+    // Add country code if missing (assuming India +91)
+    if (!cleaned.startsWith('91') && cleaned.length === 10) {
+        cleaned = '91' + cleaned;
+    }
+    
+    return cleaned;
+}
+
+function isWhatsAppClientReady() {
+    // Check if the WhatsApp client is connected and ready
+    const status = connectionStatusElement.textContent;
+    return status.includes('Connected and ready') || status.includes('✅');
+}  
             // Template functions
             function detectTemplateVariables() {
                 const content = templateContent.value;

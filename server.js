@@ -409,18 +409,18 @@ app.get("/api/accounts/:accountId/events", (req, res) => {
 });
 
 // Send message
+
 app.post("/api/send-message", async (req, res) => {
-  let { phone, message, media, accountId = "default" } = req.body;
+  let { phone, message, media, accountId } = req.body;
+
+  if (!accountId) accountId = "default"; // or enforce passing it explicitly
+
+  console.log("Send message request:", { phone, message, media, accountId });
 
   if (!phone) {
     return res
       .status(400)
       .json({ success: false, error: "Phone number is required" });
-  }
-
-  // Ensure phone is a string
-  if (typeof phone !== "string") {
-    phone = String(phone);
   }
 
   if (!message && !media?.url) {
@@ -430,42 +430,35 @@ app.post("/api/send-message", async (req, res) => {
   }
 
   const client = whatsappClients[accountId];
+
+  // ✅ Must check readiness
   if (!client || !client.isReady) {
     return res.status(400).json({
       success: false,
-      error: `Client for ${accountId} not initialized or ready. Please scan the QR code first.`,
+      error: `Client for ${accountId} not initialized or not ready. Please scan the QR code first.`,
     });
   }
 
   try {
-    // Format phone number - ensure it's a string first
     let formattedPhone = String(phone).replace(/\D/g, "");
-
-    // Add country code if missing
-    if (!formattedPhone.startsWith("55") && !formattedPhone.startsWith("91")) {
-      formattedPhone = "91" + formattedPhone; // Default to India code
+    if (!formattedPhone.startsWith("91")) {
+      formattedPhone = "91" + formattedPhone;
     }
-
     formattedPhone += "@c.us";
 
     let response;
-
     if (media?.url) {
-      // Handle media message
       const mediaPath = path.join(__dirname, media.url);
-
       if (!fs.existsSync(mediaPath)) {
         return res
           .status(400)
           .json({ success: false, error: "Media file not found" });
       }
-
       const mediaData = MessageMedia.fromFilePath(mediaPath);
       response = await client.sendMessage(formattedPhone, mediaData, {
         caption: message || media.caption || "",
       });
     } else {
-      // Handle text message
       response = await client.sendMessage(formattedPhone, message);
     }
 
