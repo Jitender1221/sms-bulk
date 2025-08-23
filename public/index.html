@@ -1281,7 +1281,9 @@
                     });
             }
 
-            function sendMessage() {
+       
+
+ function sendMessage() {
                 const phone = phoneNumberElement.value.trim();
                 const message = messageTextElement.value.trim();
                 const caption = mediaCaptionElement.value.trim();
@@ -1340,6 +1342,7 @@
                     });
             }
 
+
             function logEvent(type, data) {
                 const now = new Date();
                 const timeString = now.toLocaleTimeString();
@@ -1350,7 +1353,7 @@
                 eventLogElement.scrollTop = eventLogElement.scrollHeight;
             }
             // Bulk message functions
-            function previewBulkMessages() {
+    function previewBulkMessages() {
                 const file = recipientsFile.files[0];
                 if (!file) {
                     alert('Please upload an Excel file with recipients');
@@ -1547,6 +1550,7 @@
                     previewBulkBtn.disabled = false;
                 }
             }
+            
             // Template functions
             function detectTemplateVariables() {
                 const content = templateContent.value;

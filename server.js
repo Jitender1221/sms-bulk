@@ -412,14 +412,6 @@ app.get("/api/accounts/:accountId/events", (req, res) => {
 app.post("/api/send-message", async (req, res) => {
   let { phone, message, media, accountId = "default" } = req.body;
 
-  // Debug log to see what's being received
-  console.log("Received send message request:", {
-    phone,
-    message,
-    media,
-    accountId,
-  });
-
   if (!phone) {
     return res
       .status(400)
@@ -438,10 +430,10 @@ app.post("/api/send-message", async (req, res) => {
   }
 
   const client = whatsappClients[accountId];
-  if (!client) {
+  if (!client || !client.isReady) {
     return res.status(400).json({
       success: false,
-      error: `Client for ${accountId} not initialized. Please scan the QR code first.`,
+      error: `Client for ${accountId} not initialized or ready. Please scan the QR code first.`,
     });
   }
 
