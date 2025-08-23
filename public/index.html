@@ -1302,6 +1302,8 @@
                 eventLogElement.appendChild(eventElement);
                 eventLogElement.scrollTop = eventLogElement.scrollHeight;
             }
+
+
             // Bulk message functions
 // Bulk message functions
     function previewBulkMessages() {
@@ -1431,7 +1433,8 @@ function startBulkSend() {
     const recipient = bulkRecipients[currentBulkJob.currentIndex];
     currentBulkJob.currentIndex++;
     
-    let phone = extractPhoneNumber(recipient);
+    let phone = formatPhoneNumber(extractPhoneNumber(recipient));
+
     
     if (!phone) {
         currentBulkJob.failed++;
