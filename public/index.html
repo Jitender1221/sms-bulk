@@ -1518,40 +1518,36 @@ function updateBulkProgress() {
 }
 
 // Helper functions
-function extractPhoneNumber(recipient) {
-    // Try various possible phone number field names
-    const phoneFields = ['phone', 'Phone', 'PHONE', 'number', 'Number', 'NUMBER', 'mobile', 'Mobile', 'MOBILE', 'contact', 'Contact', 'CONTACT'];
-    
-    for (const field of phoneFields) {
-        if (recipient[field] && typeof recipient[field] === 'string') {
-            return recipient[field];
-        }
+/* ---------- 1.  extractPhoneNumber  ---------- */
+function extractPhoneNumber(row) {
+  // Accept any of these keys (case-insensitive)
+  const keys = ['phone', 'mobile', 'number', 'contact', 'whatsapp', 'tel', 'cell'];
+  for (const k of keys) {
+    for (const key in row) {
+      if (String(key).toLowerCase().includes(k)) {
+        const val = String(row[key]).trim();
+        if (val) return val;
+      }
     }
-    
-    // If no standard field found, try to find any field that looks like a phone number
-    for (const key in recipient) {
-        if (recipient[key] && typeof recipient[key] === 'string') {
-            const value = recipient[key].toString().replace(/\D/g, '');
-            if (value.length >= 10) { // Basic phone number validation
-                return recipient[key];
-            }
-        }
-    }
-    
-    return null;
+  }
+  // Fallback: first cell that looks like digits ≥ 10
+  for (const key in row) {
+    const val = String(row[key]).replace(/\D/g, '');
+    if (val.length >= 10) return val;
+  }
+  return null;
 }
 
-function formatPhoneNumber(phone) {
-    // Remove all non-digit characters
-    let cleaned = phone.toString().replace(/\D/g, '');
-    
-    // Add country code if missing (assuming India +91)
-    if (!cleaned.startsWith('91') && cleaned.length === 10) {
-        cleaned = '91' + cleaned;
-    }
-    
-    return cleaned;
+/* ---------- 2.  formatPhoneNumber  ---------- */
+function formatPhoneNumber(raw) {
+  if (!raw) return null;
+  let cleaned = String(raw).replace(/\D/g, '');           // remove everything except digits
+  if (cleaned.length === 10) cleaned = '91' + cleaned;    // add country code
+  if (cleaned.length !== 12 || !cleaned.startsWith('91')) return null; // final sanity check
+  return cleaned;
 }
+
+
 
 function isWhatsAppClientReady() {
     // Check if the WhatsApp client is connected and ready
