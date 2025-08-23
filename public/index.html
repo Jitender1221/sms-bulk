@@ -864,130 +864,80 @@
             });
             // Functions
        function setupEventSource(accountId) {
-    console.log(`Setting up EventSource for ${accountId}`);
+  // close previous
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
 
-    // Close previous connection if exists
-    if (eventSource) {
-        console.log("Closing existing EventSource");
-        eventSource.close();
-        eventSource = null;
-    }
+  // clear countdown
+  if (qrCountdownInterval) {
+    clearInterval(qrCountdownInterval);
+    qrCountdownInterval = null;
+  }
 
-    // Clear any existing countdown
-    if (qrCountdownInterval) {
-        clearInterval(qrCountdownInterval);
-        qrCountdownInterval = null;
-    }
+  const eventSourceUrl = `/api/accounts/${accountId}/events`;
+  eventSource = new EventSource(eventSourceUrl);
 
-    // Setup new SSE connection
-    const eventSourceUrl = `/api/accounts/${accountId}/events`;
-    console.log(`Connecting to SSE at ${eventSourceUrl}`);
-    eventSource = new EventSource(eventSourceUrl);
+  /* ---------- Events ---------- */
+  eventSource.addEventListener('connected', e => {
+    // immediately show spinner
+    qrCodeElement.innerHTML =
+      '<div class="spinner-border text-primary" role="status"></div>';
+    qrStatusElement.textContent = 'Connecting...';
+    connectionStatusElement.textContent = 'Connecting to WhatsApp...';
+    logEvent('SSE', 'Connection established');
+  });
 
-    // --- Events ---
-    eventSource.addEventListener("connected", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("SSE Connected:", data.message);
+  eventSource.addEventListener('qr', async e => {
+    const data = JSON.parse(e.data);
+    qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
+    qrStatusElement.textContent = 'Scan this code with WhatsApp';
+    connectionStatusElement.textContent = 'Waiting for authentication...';
+    logEvent('QR', 'New QR generated');
+  });
 
-        // Show loading only if no QR yet
-        qrCodeElement.innerHTML =
-            '<div class="spinner-border text-primary" role="status"></div>';
-        qrStatusElement.textContent = "Connecting...";
+  eventSource.addEventListener('authenticated', () => {
+    qrStatusElement.textContent = 'Authenticated, please wait...';
+  });
 
-        connectionStatusElement.textContent = "SSE Connected";
-        logEvent("SSE", "Connection established");
-    });
+  eventSource.addEventListener('ready', () => {
+    const now = new Date();
+    connectionStatusElement.innerHTML =
+      '✅ Connected and ready!<br>' +
+      `<small>Connected at: ${now.toLocaleTimeString()} on ${now.toLocaleDateString()}</small>`;
+    qrStatusElement.textContent = 'Session active';
+    qrCodeElement.innerHTML =
+      '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
+    logEvent('Status', 'Client ready');
+  });
 
-    eventSource.addEventListener("qr", function (e) {
-        // Stop countdown
-        if (qrCountdownInterval) {
-            clearInterval(qrCountdownInterval);
-            qrCountdownInterval = null;
-        }
-        const data = JSON.parse(e.data);
-        console.log("QR code received");
+  eventSource.addEventListener('auth_failure', e => {
+    const { msg } = JSON.parse(e.data);
+    connectionStatusElement.textContent = `Auth failed: ${msg}`;
+    qrStatusElement.textContent = 'Refresh page to retry';
+    qrCodeElement.innerHTML =
+      '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
+    logEvent('Error', `Auth failure: ${msg}`);
+  });
 
-        qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
-        qrStatusElement.textContent = "Scan this QR code with WhatsApp";
-        connectionStatusElement.textContent = "Waiting for authentication...";
-        logEvent("QR", "New QR code generated");
-    });
+  eventSource.addEventListener('disconnected', e => {
+    const { reason } = JSON.parse(e.data);
+    connectionStatusElement.textContent = `Disconnected: ${reason}`;
+    qrCodeElement.innerHTML =
+      '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
+    qrStatusElement.textContent = 'Session lost – reconnecting...';
+    logEvent('Status', `Disconnected: ${reason}`);
+  });
 
-    eventSource.addEventListener("authenticated", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Client authenticated");
-
-        connectionStatusElement.textContent = "Authenticated!";
-        qrStatusElement.textContent = "Please wait...";
-        logEvent("Status", "Client authenticated");
-    });
-
-    eventSource.addEventListener("ready", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Client ready");
-
-        const now = new Date();
-        connectionStatusElement.innerHTML =
-            "✅ Connected and ready!<br>" +
-            `<small>Connected at: ${now.toLocaleTimeString()} on ${now.toLocaleDateString()}</small>`;
-
-        qrStatusElement.textContent = "Session is active";
-        qrCodeElement.innerHTML =
-            '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
-        logEvent("Status", "Client is ready");
-    });
-
-    eventSource.addEventListener("auth_failure", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Auth failure:", data.msg);
-
-        connectionStatusElement.textContent = `Authentication failed: ${data.msg}`;
-        qrStatusElement.textContent = "Please refresh to retry";
-        qrCodeElement.innerHTML =
-            '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
-        logEvent("Error", `Authentication failed: ${data.msg}`);
-    });
-
-    eventSource.addEventListener("disconnected", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Client disconnected:", data.reason);
-
-        connectionStatusElement.textContent = `Disconnected: ${data.reason}`;
-        qrCodeElement.innerHTML =
-            '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
-        qrStatusElement.textContent = "Session lost, please reconnect";
-        logEvent("Status", `Disconnected: ${data.reason}`);
-    });
-
-    eventSource.addEventListener("loading", function (e) {
-        const data = JSON.parse(e.data);
-        console.log(`Loading: ${data.percent}% - ${data.message}`);
-        connectionStatusElement.textContent = `Loading: ${data.percent}% - ${data.message}`;
-    });
-
-    eventSource.addEventListener("status", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Status update:", data.message);
-        logEvent("Status", data.message);
-    });
-
-    eventSource.onerror = function (e) {
-        console.error("EventSource error:", e);
-        logEvent("Error", "EventSource connection error");
-
-        // Close old eventSource before reconnect
-        if (eventSource) {
-            eventSource.close();
-            eventSource = null;
-        }
-
-        // Reconnect after 3s
-        setTimeout(() => {
-            console.log("Attempting to reconnect EventSource");
-            setupEventSource(accountId);
-        }, 3000);
-    };
+  eventSource.onerror = () => {
+    console.warn('SSE error – reconnecting in 3 s...');
+    setTimeout(() => setupEventSource(accountId), 3000);
+  };
 }
+
+
+    
 
 
             function updateQrCountdown() {
