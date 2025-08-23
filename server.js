@@ -16,7 +16,7 @@ const fileUpload = require("express-fileupload");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database Models (simplified schemas)
+// Database Models
 const accountSchema = new mongoose.Schema({
   accountId: { type: String, required: true, unique: true },
   status: { type: String, default: "initialized" },
@@ -134,7 +134,10 @@ function broadcastEvent(accountId, type, data) {
 }
 
 function initializeWhatsAppClient(accountId) {
-  if (whatsappClients[accountId]) {
+  // Check if client already exists and is connected
+  if (whatsappClients[accountId] && whatsappClients[accountId].isReady) {
+    console.log(`Client ${accountId} is already connected`);
+    broadcastEvent(accountId, "ready", { message: "✅ Already connected" });
     return whatsappClients[accountId];
   }
 
@@ -143,6 +146,7 @@ function initializeWhatsAppClient(accountId) {
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
+      executablePath: "/usr/bin/chromium",
       headless: true,
       args: [
         "--no-sandbox",
@@ -161,14 +165,21 @@ function initializeWhatsAppClient(accountId) {
     },
   });
 
+  // Set client properties
+  client.isReady = false;
+  client.accountId = accountId;
+
   whatsappClients[accountId] = client;
 
-  // If session already exists, immediately tell frontend "connected"
+  // Check if session already exists
   const authDir = path.join(__dirname, ".wwebjs_auth", `session-${accountId}`);
   if (fs.existsSync(authDir)) {
+    console.log(`Session found for ${accountId}, connecting quickly...`);
     broadcastEvent(accountId, "connected", {
       message: "Session found, connecting quickly...",
     });
+  } else {
+    console.log(`No session found for ${accountId}, will generate QR code`);
   }
 
   client.on("qr", async (qr) => {
@@ -179,7 +190,7 @@ function initializeWhatsAppClient(accountId) {
 
   client.on("authenticated", async () => {
     console.log(`Client ${accountId} authenticated`);
-    broadcastEvent(accountId, "connected", {
+    broadcastEvent(accountId, "authenticated", {
       message: "Authenticated, please wait...",
     });
     await Account.findOneAndUpdate(
@@ -191,6 +202,7 @@ function initializeWhatsAppClient(accountId) {
 
   client.on("ready", async () => {
     console.log(`Client ${accountId} is ready!`);
+    client.isReady = true;
     broadcastEvent(accountId, "ready", { message: "✅ Connected and ready" });
     await Account.findOneAndUpdate(
       { accountId },
@@ -199,15 +211,26 @@ function initializeWhatsAppClient(accountId) {
     );
   });
 
-  client.on("auth_failure", (msg) => {
-    console.log(`Authentication failure for ${accountId}:`, msg);
-    broadcastEvent(accountId, "auth_failure", { msg });
+  client.on("disconnected", async (reason) => {
+    console.log(`Client ${accountId} disconnected: ${reason}`);
+    client.isReady = false;
+    broadcastEvent(accountId, "disconnected", { reason });
+    await Account.findOneAndUpdate(
+      { accountId },
+      { status: "disconnected", lastActivity: new Date() }
+    );
+
+    // Clean up
+    delete whatsappClients[accountId];
   });
 
-  client.on("disconnected", (reason) => {
-    console.log(`Client ${accountId} disconnected:`, reason);
-    broadcastEvent(accountId, "disconnected", { reason });
-    delete whatsappClients[accountId];
+  client.on("auth_failure", async (msg) => {
+    console.log(`Authentication failure for ${accountId}: ${msg}`);
+    broadcastEvent(accountId, "auth_failure", { msg });
+    await Account.findOneAndUpdate(
+      { accountId },
+      { status: "auth_failure", lastActivity: new Date() }
+    );
   });
 
   client.initialize().catch((err) => {
@@ -241,6 +264,13 @@ app.post("/api/accounts", async (req, res) => {
     return res
       .status(400)
       .json({ success: false, error: "Account ID is required" });
+  }
+
+  // Validate account ID format
+  if (accountId.includes(" ")) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Account ID cannot contain spaces" });
   }
 
   try {
