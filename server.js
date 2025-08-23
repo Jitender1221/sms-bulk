@@ -11,6 +11,9 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const fileUpload = require("express-fileupload");
 
+// Increase max listeners to prevent warnings
+process.setMaxListeners(20);
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -106,6 +109,7 @@ function broadcastEvent(accountId, type, data) {
       client.res.write(`data: ${JSON.stringify(data)}\n\n`);
     } catch (err) {
       console.error("Error sending SSE:", err);
+      // Remove disconnected client
       sseClients[accountId] = sseClients[accountId].filter(
         (c) => c.id !== client.id
       );
@@ -114,17 +118,26 @@ function broadcastEvent(accountId, type, data) {
 }
 
 function initializeWhatsAppClient(accountId) {
-  // Check if client already exists and is connected
-  if (whatsappClients[accountId] && whatsappClients[accountId].isReady) {
-    console.log(`Client ${accountId} is already connected`);
-    broadcastEvent(accountId, "ready", { message: "✅ Already connected" });
-    return whatsappClients[accountId];
+  // Check if client already exists and is initializing or ready
+  if (whatsappClients[accountId]) {
+    const client = whatsappClients[accountId];
+
+    if (client.isReady) {
+      console.log(`Client ${accountId} is already connected and ready`);
+      broadcastEvent(accountId, "ready", {
+        message: "✅ Already connected and ready",
+      });
+      return client;
+    }
+
+    if (client.isInitializing) {
+      console.log(`Client ${accountId} is already initializing`);
+      return client;
+    }
   }
 
   console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
-  // Use the default Chromium that comes with puppeteer
-  // This is the most reliable approach
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
@@ -149,6 +162,7 @@ function initializeWhatsAppClient(accountId) {
 
   // Set client properties
   client.isReady = false;
+  client.isInitializing = true;
   client.accountId = accountId;
 
   whatsappClients[accountId] = client;
@@ -185,6 +199,7 @@ function initializeWhatsAppClient(accountId) {
   client.on("ready", async () => {
     console.log(`Client ${accountId} is ready!`);
     client.isReady = true;
+    client.isInitializing = false;
     broadcastEvent(accountId, "ready", { message: "✅ Connected and ready" });
     await Account.findOneAndUpdate(
       { accountId },
@@ -196,6 +211,7 @@ function initializeWhatsAppClient(accountId) {
   client.on("disconnected", async (reason) => {
     console.log(`Client ${accountId} disconnected: ${reason}`);
     client.isReady = false;
+    client.isInitializing = false;
     broadcastEvent(accountId, "disconnected", { reason });
     await Account.findOneAndUpdate(
       { accountId },
@@ -208,6 +224,7 @@ function initializeWhatsAppClient(accountId) {
 
   client.on("auth_failure", async (msg) => {
     console.log(`Authentication failure for ${accountId}: ${msg}`);
+    client.isInitializing = false;
     broadcastEvent(accountId, "auth_failure", { msg });
     await Account.findOneAndUpdate(
       { accountId },
@@ -217,6 +234,7 @@ function initializeWhatsAppClient(accountId) {
 
   client.initialize().catch((err) => {
     console.error(`Failed to initialize client for ${accountId}:`, err);
+    client.isInitializing = false;
     broadcastEvent(accountId, "error", { message: err.message });
   });
 
@@ -376,13 +394,20 @@ app.get("/api/accounts/:accountId/events", (req, res) => {
 
   req.on("close", () => {
     console.log(`Client ${clientId} disconnected from SSE`);
-    sseClients[accountId] = sseClients[accountId].filter(
-      (client) => client.id !== clientId
-    );
+    // Remove client from SSE clients list
+    if (sseClients[accountId]) {
+      sseClients[accountId] = sseClients[accountId].filter(
+        (client) => client.id !== clientId
+      );
+
+      // Clean up empty arrays
+      if (sseClients[accountId].length === 0) {
+        delete sseClients[accountId];
+      }
+    }
   });
 });
 
-// Send message
 // Send message
 app.post("/api/send-message", async (req, res) => {
   let { phone, message, media, accountId = "default" } = req.body;
@@ -552,6 +577,27 @@ app.delete("/api/templates/:id", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Clean up function for graceful shutdown
+process.on("SIGINT", async () => {
+  console.log("Shutting down gracefully...");
+
+  // Close all WhatsApp clients
+  for (const accountId in whatsappClients) {
+    try {
+      await whatsappClients[accountId].destroy();
+      console.log(`Closed client for ${accountId}`);
+    } catch (err) {
+      console.error(`Error closing client for ${accountId}:`, err);
+    }
+  }
+
+  // Close MongoDB connection
+  await mongoose.connection.close();
+  console.log("MongoDB connection closed");
+
+  process.exit(0);
 });
 
 // Serve frontend
