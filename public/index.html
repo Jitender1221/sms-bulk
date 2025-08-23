@@ -266,7 +266,7 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <!-- <ul class="navbar-nav me-auto mb-2 mb-lg-0 d-lg-none">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 d-lg-none">
                     <li class="nav-item">
                         <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
                             <i class="bi bi-speedometer2"></i> Dashboard
@@ -303,7 +303,7 @@
                     <button id="mobileLogoutBtn" class="btn btn-danger btn-sm d-lg-none">
                         <i class="bi bi-box-arrow-right"></i>
                     </button>
-                </div> -->
+                </div>
             </div>
         </div>
     </nav>
@@ -351,7 +351,7 @@
     <!-- Mobile Sidebar (hidden by default) -->
     <div class="sidebar d-lg-none" id="mobileSidebar">
         <div class="logo">
-            <h1>Gurukripa Career Institute</h1>
+            <h3>Gurukripa Career Institute</h3>
             <small><i class="bi bi-whatsapp"></i> WhatsApp Client</small>
         </div>
         <ul class="nav flex-column">
@@ -488,9 +488,8 @@
                             </select>
                         </div>
                         <div class="mb-3">
-                            <div id="templatePreview" class="template-preview">
-                                <p class="text-muted">Template preview will appear here</p>
-                            </div>
+                            <label class="form-label">Template Preview</label>
+                            <div id="templatePreview" class="template-preview"></div>
                         </div>
                     </div>
 
@@ -502,144 +501,100 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="recipientsFile" class="form-label">Upload Recipients Excel File</label>
-                        <input type="file" class="form-control" id="recipientsFile" accept=".xlsx, .xls, .csv">
-                        <div class="form-text">Excel file should contain phone numbers and any variables used in
-                            the template</div>
+                        <label for="phoneNumbers" class="form-label">Phone Numbers (one per line, with country code (91))
+                        </label>
+                        <textarea class="form-control" id="phoneNumbers" rows="5"
+                            placeholder="919876543210&#10;919876543211&#10;919876543212"></textarea>
                     </div>
 
                     <div class="mb-3">
-                        <label for="mediaFileBulk" class="form-label">Media Attachment (optional - same for all
-                            recipients)</label>
-                        <input type="file" class="form-control" id="mediaFileBulk">
-                        <div id="mediaPreviewBulk" class="mt-2"></div>
+                        <label for="bulkMediaFile" class="form-label">Media Attachment (optional)</label>
+                        <input type="file" class="form-control" id="bulkMediaFile">
+                        <div id="bulkMediaPreview" class="mt-2"></div>
+                        <div class="form-text">You can attach an image, video, or document</div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="mediaCaptionBulk" class="form-label">Media Caption (optional)</label>
-                        <input type="text" class="form-control" id="mediaCaptionBulk"
+                        <label for="bulkMediaCaption" class="form-label">Media Caption (optional)</label>
+                        <input type="text" class="form-control" id="bulkMediaCaption"
                             placeholder="Caption for your media">
                     </div>
 
-                    <div class="mb-3">
-                        <label for="delayBetweenMessages" class="form-label">Delay between messages
-                            (seconds)</label>
-                        <input type="number" class="form-control" id="delayBetweenMessages" value="5" min="1">
-                    </div>
+                    <button id="sendBulkBtn" class="btn btn-success">Send Bulk Messages</button>
+                    <div id="bulkStatus" class="mt-2"></div>
 
-                    <button id="previewBulkBtn" class="btn btn-primary">Preview Messages</button>
-                    <button id="sendBulkBtn" class="btn btn-success" disabled>Send Bulk Messages</button>
-
-                    <div id="bulkPreview" class="bulk-preview" style="display: none;">
-                        <h5>Message Preview (first 10 records)</h5>
-                        <div id="bulkPreviewContent"></div>
-                    </div>
-
-                    <div id="bulkProgress" class="progress-container" style="display: none;">
+                    <div class="progress-container" style="display: none;" id="progressContainer">
                         <h5>Progress</h5>
-                        <div class="progress">
-                            <div id="bulkProgressBar" class="progress-bar" role="progressbar" style="width: 0%">
-                                0%</div>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar">0%</div>
                         </div>
-                        <div id="bulkProgressText" class="mt-2">Ready to start</div>
-                        <div id="bulkStats" class="mt-2"></div>
+                        <div id="progressDetails">Processed: 0/0</div>
+                    </div>
+
+                    <div class="bulk-preview" style="display: none;" id="bulkPreview">
+                        <h5>Message Preview</h5>
+                        <div id="previewContent"></div>
                     </div>
                 </div>
             </div>
 
             <!-- Templates Tab -->
             <div class="tab-pane fade" id="templates">
-                <h2 class="text-light">Manage Templates</h2>
+                <h2 class="text-light">Message Templates</h2>
                 <hr />
 
                 <div class="message-form">
+                    <h4>Create New Template</h4>
                     <div class="mb-3">
                         <label for="templateName" class="form-label">Template Name</label>
                         <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
                     </div>
                     <div class="mb-3">
                         <label for="templateContent" class="form-label">Template Content</label>
-                        <textarea class="form-control" id="templateContent" rows="5"></textarea>
+                        <textarea class="form-control" id="templateContent" rows="5"
+                            placeholder="Enter your message template here..."></textarea>
                         <div class="form-text">
-                            Use variables like {{name}}, {{date}}, etc. These will be replaced with values from
-                            your Excel file.
+                            Use variables like {{name}}, {{course}}, etc. They will be replaced with actual values when
+                            sending.
                         </div>
-                    </div>
-                    <div class="mb-3">
-                        <button id="addVariableBtn" class="btn btn-sm btn-outline-secondary">Add
-                            Variable</button>
-                        <div class="btn-group ms-2" id="commonVariables">
-                            <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
-                                data-var="{{name}}">Name</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
-                                data-var="{{date}}">Date</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
-                                data-var="{{time}}">Time</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary insert-variable"
-                                data-var="{{email}}">Email</button>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Variables Detected:</label>
-                        <div id="templateVariables"></div>
                     </div>
                     <button id="saveTemplateBtn" class="btn btn-primary">Save Template</button>
-                    <button id="testTemplateBtn" class="btn btn-outline-primary ms-2">Test Template</button>
+                    <div id="templateStatus" class="mt-2"></div>
+                </div>
 
-                    <div class="mt-4">
-                        <h5>Saved Templates</h5>
-                        <table class="table table-bordered">
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Variables</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="templatesList">
-                                <tr>
-                                    <td colspan="3">No templates saved yet</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                <hr />
 
-                    <div id="testTemplateSection" class="mt-3" style="display: none;">
-                        <h5>Test Template with Sample Data</h5>
-                        <div class="mb-3">
-                            <div id="testVariablesInputs"></div>
-                        </div>
-                        <button id="generateTestBtn" class="btn btn-sm btn-primary">Generate Test
-                            Message</button>
-                        <div class="template-preview mt-3" id="testTemplatePreview">
-                            <p class="text-muted">Test message will appear here</p>
-                        </div>
+                <h4>Saved Templates</h4>
+                <div id="templatesList" class="mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>
 
             <!-- Accounts Tab -->
             <div class="tab-pane fade" id="accounts">
-                <h2 class="text-light">Manage Accounts</h2>
+                <h2 class="text-light">Account Management</h2>
                 <hr />
+
                 <div class="message-form">
+                    <h4>Create New Account</h4>
                     <div class="mb-3">
-                        <label for="newAccountId" class="form-label">Create New Account Session</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="newAccountId"
-                                placeholder="Enter account ID (Without space)">
-                            <button class="btn btn-primary" id="createAccountBtn">Create</button>
-                        </div>
-                        <div id="accountIdError" class="text-danger mt-1" style="display: none;"></div>
+                        <label for="newAccountId" class="form-label">Account ID</label>
+                        <input type="text" class="form-control" id="newAccountId" placeholder="Enter account ID">
+                        <div class="form-text">This will be used to identify and switch between different WhatsApp
+                            accounts.</div>
                     </div>
-                    <div class="mb-3">
-                        <h5>Existing Accounts</h5>
-                        <ul class="list-group" id="accountsList">
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                default
-                                <span class="badge bg-primary rounded-pill">Active</span>
-                            </li>
-                        </ul>
+                    <button id="createAccountBtn" class="btn btn-primary">Create Account</button>
+                    <div id="accountStatus" class="mt-2"></div>
+                </div>
+
+                <hr />
+
+                <h4>Existing Accounts</h4>
+                <div id="accountsList" class="mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>
@@ -648,1043 +603,754 @@
             <div class="tab-pane fade" id="logs">
                 <h2 class="text-light">Event Logs</h2>
                 <hr />
-                <div class="event-log" id="eventLog">
-                    <div>System initialized...</div>
-                </div>
-                <button class="btn btn-sm btn-secondary mt-2" id="clearLogsBtn">Clear Logs</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- Template Test Modal -->
-    <div class="modal fade" id="testTemplateModal" tabindex="-1" aria-labelledby="testTemplateModalLabel"
-        aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="testTemplateModalLabel">Test Template</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="testTemplateResult"></div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="message-form">
+                    <h4>Connection Events</h4>
+                    <div class="event-log" id="eventLog">
+                        [System] Event log initialized at: <span id="logTime"></span><br>
+                        [System] Connecting to server...
+                    </div>
+                    <button id="clearLogsBtn" class="btn btn-secondary mt-2">Clear Logs</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Mobile Sidebar Toggle Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const navbarToggler = document.querySelector('.navbar-toggler');
-            const mobileSidebar = document.getElementById('mobileSidebar');
-            navbarToggler.addEventListener('click', function() {
-                mobileSidebar.classList.toggle('show');
-            });
-            // Close sidebar when clicking outside
-            document.addEventListener('click', function(event) {
-                if (!mobileSidebar.contains(event.target) && !navbarToggler.contains(event.target)) {
-                    mobileSidebar.classList.remove('show');
-                }
-            });
-        });
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Global variables
-            let activeAccount = 'default';
+        document.addEventListener('DOMContentLoaded', function () {
+            // Initialize variables
+            let currentAccount = 'default';
             let eventSource = null;
-            let mediaUrl = null;
-            let bulkMediaUrl = null;
-            let templates = [];
-            let bulkRecipients = [];
-            let currentBulkJob = null;
-            let bulkJobInterval = null;
-            let testTemplateModal = new bootstrap.Modal(document.getElementById('testTemplateModal'));
-            // QR Code countdown variables
-            let qrDisplayTime = null;
-            let qrCountdownInterval = null;
-            const QR_CODE_DELAY = 15; // Time in seconds until QR code is shown
-            // DOM elements
-            const qrCodeElement = document.getElementById('qrCode');
-            const qrStatusElement = document.getElementById('qrStatus');
-            const qrProgressElement = document.getElementById('qrProgress');
-            const connectionStatusElement = document.getElementById('connectionStatus');
-            const currentAccountElement = document.getElementById('currentAccount');
-            const accountSelectElement = document.getElementById('accountSelect');
-            const logoutBtn = document.getElementById('logoutBtn');
-            const phoneNumberElement = document.getElementById('phoneNumber');
-            const messageTextElement = document.getElementById('messageText');
-            const mediaFileElement = document.getElementById('mediaFile');
-            const mediaCaptionElement = document.getElementById('mediaCaption');
-            const mediaPreviewElement = document.getElementById('mediaPreview');
-            const sendMessageBtn = document.getElementById('sendMessageBtn');
-            const sendStatusElement = document.getElementById('sendStatus');
-            const newAccountIdElement = document.getElementById('newAccountId');
-            const createAccountBtn = document.getElementById('createAccountBtn');
-            const accountsListElement = document.getElementById('accountsList');
-            const eventLogElement = document.getElementById('eventLog');
-            const clearLogsBtn = document.getElementById('clearLogsBtn');
-            const accountIdErrorElement = document.getElementById('accountIdError');
-            // Bulk message elements
-            const useTemplateRadio = document.getElementById('useTemplate');
-            const useCustomMessageRadio = document.getElementById('useCustomMessage');
-            const templateSection = document.getElementById('templateSection');
-            const customMessageSection = document.getElementById('customMessageSection');
-            const templateSelect = document.getElementById('templateSelect');
-            const templatePreview = document.getElementById('templatePreview');
-            const bulkMessageText = document.getElementById('bulkMessageText');
-            const recipientsFile = document.getElementById('recipientsFile');
-            const mediaFileBulk = document.getElementById('mediaFileBulk');
-            const mediaPreviewBulk = document.getElementById('mediaPreviewBulk');
-            const mediaCaptionBulk = document.getElementById('mediaCaptionBulk');
-            const delayBetweenMessages = document.getElementById('delayBetweenMessages');
-            const previewBulkBtn = document.getElementById('previewBulkBtn');
-            const sendBulkBtn = document.getElementById('sendBulkBtn');
-            const bulkPreview = document.getElementById('bulkPreview');
-            const bulkPreviewContent = document.getElementById('bulkPreviewContent');
-            const bulkProgress = document.getElementById('bulkProgress');
-            const bulkProgressBar = document.getElementById('bulkProgressBar');
-            const bulkProgressText = document.getElementById('bulkProgressText');
-            const bulkStats = document.getElementById('bulkStats');
-            // Template elements
-            const templateName = document.getElementById('templateName');
-            const templateContent = document.getElementById('templateContent');
-            const templateVariables = document.getElementById('templateVariables');
-            const addVariableBtn = document.getElementById('addVariableBtn');
-            const saveTemplateBtn = document.getElementById('saveTemplateBtn');
-            const testTemplateBtn = document.getElementById('testTemplateBtn');
-            const templatesList = document.getElementById('templatesList');
-            const testTemplateSection = document.getElementById('testTemplateSection');
-            const testVariablesInputs = document.getElementById('testVariablesInputs');
-            const generateTestBtn = document.getElementById('generateTestBtn');
-            const testTemplatePreview = document.getElementById('testTemplatePreview');
-            const testTemplateResult = document.getElementById('testTemplateResult');
-            const commonVariables = document.getElementById('commonVariables');
-            // Initialize event source for default account
-            setupEventSource('default');
-            // Fetch existing accounts and templates
-            fetchAccounts();
-            fetchTemplates();
-            // Event listeners
-            accountSelectElement.addEventListener('change', function() {
-                const selectedAccount = this.value;
-                if (selectedAccount !== activeAccount) {
-                    switchAccount(selectedAccount);
-                }
-            });
-            logoutBtn.addEventListener('click', function() {
-                logoutAccount(activeAccount);
-            });
-            mediaFileElement.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    uploadMedia(e.target.files[0], false);
-                }
-            });
-            mediaFileBulk.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    uploadMedia(e.target.files[0], true);
-                }
-            });
-            sendMessageBtn.addEventListener('click', function() {
-                sendMessage();
-            });
-            createAccountBtn.addEventListener('click', function() {
-                createAccount();
-            });
-            clearLogsBtn.addEventListener('click', function() {
-                eventLogElement.innerHTML = '<div>Logs cleared...</div>';
-            });
-        
-  // Real-time validation for account ID
-        newAccountIdElement.addEventListener('input', function() {
-            const accountId = this.value;
-            
-            if (accountId.includes(' ')) {
-                accountIdErrorElement.textContent = 'Account ID cannot contain spaces';
-                accountIdErrorElement.style.display = 'block';
-            } else {
-                accountIdErrorElement.style.display = 'none';
+            let isConnected = false;
+            let eventLog = document.getElementById('eventLog');
+
+            // Update log time
+            document.getElementById('logTime').textContent = new Date().toLocaleTimeString();
+
+            // Initialize the app
+            initializeApp();
+
+            function initializeApp() {
+                logEvent('[System] Initializing application...');
+                loadTemplates();
+                loadAccounts();
+                setupEventListeners();
+                connectToSSE();
             }
-        });
-            // Bulk message event listeners
-            useTemplateRadio.addEventListener('change', function() {
-                templateSection.style.display = 'block';
-                customMessageSection.style.display = 'none';
-            });
-            useCustomMessageRadio.addEventListener('change', function() {
-                templateSection.style.display = 'none';
-                customMessageSection.style.display = 'block';
-            });
-            templateSelect.addEventListener('change', function() {
-                const selectedTemplate = templates.find(t => t.name === this.value);
-                if (selectedTemplate) {
-                    templatePreview.innerHTML = renderTemplatePreview(selectedTemplate.content);
-                } else {
-                    templatePreview.innerHTML =
-                        '<p class="text-muted">Template preview will appear here</p>';
+
+            function connectToSSE() {
+                // Close existing connection if any
+                if (eventSource) {
+                    eventSource.close();
                 }
-            });
-            previewBulkBtn.addEventListener('click', function() {
-                previewBulkMessages();
-            });
-            sendBulkBtn.addEventListener('click', function() {
-                startBulkSend();
-            });
-            // Template event listeners
-            templateContent.addEventListener('input', function() {
-                detectTemplateVariables();
-            });
-            addVariableBtn.addEventListener('click', function() {
-                const varName = prompt('Enter variable name (without curly braces):');
-                if (varName) {
-                    insertAtCursor(templateContent, `{{${varName}}}`);
-                    detectTemplateVariables();
-                }
-            });
-            // Add event listeners for common variables
-            document.querySelectorAll('.insert-variable').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    insertAtCursor(templateContent, this.dataset.var);
-                    detectTemplateVariables();
+
+                logEvent(`[System] Connecting to account: ${currentAccount}`);
+
+                eventSource = new EventSource(`/api/accounts/${currentAccount}/events`);
+
+                eventSource.addEventListener('connected', function (event) {
+                    const data = JSON.parse(event.data);
+                    logEvent(`[SSE] Connected to server: ${data.message}`);
                 });
-            });
-            saveTemplateBtn.addEventListener('click', function() {
-                saveTemplate();
-            });
-            testTemplateBtn.addEventListener('click', function() {
-                showTestTemplateSection();
-            });
-            generateTestBtn.addEventListener('click', function() {
-                testTemplate();
-            });
-            // Functions
-       function setupEventSource(accountId) {
-    console.log(`Setting up EventSource for ${accountId}`);
 
-    // Close previous connection if exists
-    if (eventSource) {
-        console.log("Closing existing EventSource");
-        eventSource.close();
-        eventSource = null;
-    }
+                eventSource.addEventListener('qr', function (event) {
+                    const data = JSON.parse(event.data);
+                    document.getElementById('qrCode').innerHTML = `<img src="${data.qr}" alt="QR Code">`;
+                    document.getElementById('qrStatus').textContent = 'Scan the QR code with WhatsApp';
+                    document.getElementById('connectionStatus').textContent = 'Waiting for QR scan...';
+                    logEvent('[QR] QR code received, please scan with WhatsApp');
+                });
 
-    // Clear any existing countdown
-    if (qrCountdownInterval) {
-        clearInterval(qrCountdownInterval);
-        qrCountdownInterval = null;
-    }
+                eventSource.addEventListener('ready', function (event) {
+                    const data = JSON.parse(event.data);
+                    document.getElementById('connectionStatus').textContent = '✅ Connected and ready';
+                    document.getElementById('qrStatus').textContent = 'Connected successfully';
+                    document.getElementById('qrCode').innerHTML = '✅ Connected';
+                    isConnected = true;
+                    logEvent('[Connection] WhatsApp client is ready!');
+                });
 
-    // Setup new SSE connection
-    const eventSourceUrl = `/api/accounts/${accountId}/events`;
-    console.log(`Connecting to SSE at ${eventSourceUrl}`);
-    eventSource = new EventSource(eventSourceUrl);
+                eventSource.addEventListener('connected', function (event) {
+                    const data = JSON.parse(event.data);
+                    logEvent(`[Connection] ${data.message}`);
+                });
 
-    // --- Events ---
-    eventSource.addEventListener("connected", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("SSE Connected:", data.message);
+                eventSource.addEventListener('auth_failure', function (event) {
+                    const data = JSON.parse(event.data);
+                    logEvent(`[Error] Authentication failed: ${data.msg}`);
+                });
 
-        // Show loading only if no QR yet
-        qrCodeElement.innerHTML =
-            '<div class="spinner-border text-primary" role="status"></div>';
-        qrStatusElement.textContent = "Connecting...";
+                eventSource.addEventListener('disconnected', function (event) {
+                    const data = JSON.parse(event.data);
+                    document.getElementById('connectionStatus').textContent = '❌ Disconnected';
+                    isConnected = false;
+                    logEvent(`[Connection] Disconnected: ${data.reason}`);
+                });
 
-        connectionStatusElement.textContent = "SSE Connected";
-        logEvent("SSE", "Connection established");
-    });
+                eventSource.addEventListener('error', function (event) {
+                    const data = JSON.parse(event.data);
+                    logEvent(`[Error] ${data.message}`);
+                });
 
-    eventSource.addEventListener("qr", function (e) {
-        // Stop countdown
-        if (qrCountdownInterval) {
-            clearInterval(qrCountdownInterval);
-            qrCountdownInterval = null;
-        }
-        const data = JSON.parse(e.data);
-        console.log("QR code received");
-
-        qrCodeElement.innerHTML = `<img src="${data.qr}" alt="QR Code" class="img-fluid">`;
-        qrStatusElement.textContent = "Scan this QR code with WhatsApp";
-        connectionStatusElement.textContent = "Waiting for authentication...";
-        logEvent("QR", "New QR code generated");
-    });
-
-    eventSource.addEventListener("authenticated", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Client authenticated");
-
-        connectionStatusElement.textContent = "Authenticated!";
-        qrStatusElement.textContent = "Please wait...";
-        logEvent("Status", "Client authenticated");
-    });
-
-    eventSource.addEventListener("ready", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Client ready");
-
-        const now = new Date();
-        connectionStatusElement.innerHTML =
-            "✅ Connected and ready!<br>" +
-            `<small>Connected at: ${now.toLocaleTimeString()} on ${now.toLocaleDateString()}</small>`;
-
-        qrStatusElement.textContent = "Session is active";
-        qrCodeElement.innerHTML =
-            '<div class="text-success"><i class="bi bi-check-circle-fill" style="font-size: 5rem;"></i></div>';
-        logEvent("Status", "Client is ready");
-    });
-
-    eventSource.addEventListener("auth_failure", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Auth failure:", data.msg);
-
-        connectionStatusElement.textContent = `Authentication failed: ${data.msg}`;
-        qrStatusElement.textContent = "Please refresh to retry";
-        qrCodeElement.innerHTML =
-            '<div class="text-danger"><i class="bi bi-x-circle-fill" style="font-size: 5rem;"></i></div>';
-        logEvent("Error", `Authentication failed: ${data.msg}`);
-    });
-
-    eventSource.addEventListener("disconnected", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Client disconnected:", data.reason);
-
-        connectionStatusElement.textContent = `Disconnected: ${data.reason}`;
-        qrCodeElement.innerHTML =
-            '<div class="text-warning"><i class="bi bi-exclamation-triangle-fill" style="font-size: 5rem;"></i></div>';
-        qrStatusElement.textContent = "Session lost, please reconnect";
-        logEvent("Status", `Disconnected: ${data.reason}`);
-    });
-
-    eventSource.addEventListener("loading", function (e) {
-        const data = JSON.parse(e.data);
-        console.log(`Loading: ${data.percent}% - ${data.message}`);
-        connectionStatusElement.textContent = `Loading: ${data.percent}% - ${data.message}`;
-    });
-
-    eventSource.addEventListener("status", function (e) {
-        const data = JSON.parse(e.data);
-        console.log("Status update:", data.message);
-        logEvent("Status", data.message);
-    });
-
-    eventSource.onerror = function (e) {
-        console.error("EventSource error:", e);
-        logEvent("Error", "EventSource connection error");
-
-        // Close old eventSource before reconnect
-        if (eventSource) {
-            eventSource.close();
-            eventSource = null;
-        }
-
-        // Reconnect after 3s
-        setTimeout(() => {
-            console.log("Attempting to reconnect EventSource");
-            setupEventSource(accountId);
-        }, 3000);
-    };
-}
-
-
-            function updateQrCountdown() {
-                const now = new Date();
-                const diff = qrDisplayTime - now;
-                const total = QR_CODE_DELAY * 1000;
-                if (diff <= 0) {
-                    clearInterval(qrCountdownInterval);
-                    qrCountdownInterval = null;
-                    qrProgressElement.style.width = '0%';
-                    qrStatusElement.textContent = 'Generating QR code...';
-                    return;
-                }
-                const seconds = Math.floor(diff / 1000);
-                const percentage = (diff / total) * 100;
-                qrProgressElement.style.width = `${percentage}%`;
-                qrStatusElement.textContent = `QR code will be displayed in ${seconds} seconds...`;
+                eventSource.onerror = function (error) {
+                    logEvent('[SSE Error] Connection error, attempting to reconnect...');
+                    setTimeout(connectToSSE, 3000);
+                };
             }
 
-            function fetchAccounts() {
-                fetch('/api/accounts')
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            updateAccountList(data.accounts);
+            function setupEventListeners() {
+                // Account selection
+                document.getElementById('accountSelect').addEventListener('change', function (e) {
+                    currentAccount = e.target.value;
+                    document.getElementById('currentAccount').textContent = currentAccount;
+                    document.getElementById('currentAccountNav').textContent = currentAccount;
+                    logEvent(`[Account] Switched to: ${currentAccount}`);
+                    connectToSSE();
+                });
+
+                // Logout button
+                document.getElementById('logoutBtn').addEventListener('click', function () {
+                    logoutAccount();
+                });
+
+                document.getElementById('mobileLogoutBtn').addEventListener('click', function () {
+                    logoutAccount();
+                });
+
+                // Send message button
+                document.getElementById('sendMessageBtn').addEventListener('click', function () {
+                    sendSingleMessage();
+                });
+
+                // Send bulk messages button
+                document.getElementById('sendBulkBtn').addEventListener('click', function () {
+                    sendBulkMessages();
+                });
+
+                // Template selection change
+                document.getElementById('templateSelect').addEventListener('change', function () {
+                    updateTemplatePreview();
+                });
+
+                // Message source radio buttons
+                document.querySelectorAll('input[name="messageSource"]').forEach(function (radio) {
+                    radio.addEventListener('change', function () {
+                        if (this.value === 'template') {
+                            document.getElementById('templateSection').style.display = 'block';
+                            document.getElementById('customMessageSection').style.display = 'none';
                         } else {
-                            logEvent('Error', data.error || 'Failed to fetch accounts');
+                            document.getElementById('templateSection').style.display = 'none';
+                            document.getElementById('customMessageSection').style.display = 'block';
                         }
-                    })
-                    .catch(error => {
-                        logEvent('Error', error.message);
                     });
-            }
+                });
 
-            function fetchTemplates() {
-                // In a real app, this would fetch from your backend
-                // For this demo, we'll use localStorage
-                const savedTemplates = localStorage.getItem('whatsappTemplates');
-                if (savedTemplates) {
-                    templates = JSON.parse(savedTemplates);
-                    updateTemplatesList();
-                    updateTemplateDropdown();
+                // Media file preview
+                document.getElementById('mediaFile').addEventListener('change', function (e) {
+                    previewMediaFile(e.target, 'mediaPreview');
+                });
+
+                document.getElementById('bulkMediaFile').addEventListener('change', function (e) {
+                    previewMediaFile(e.target, 'bulkMediaPreview');
+                });
+
+                // Save template button
+                document.getElementById('saveTemplateBtn').addEventListener('click', function () {
+                    saveTemplate();
+                });
+
+                // Create account button
+                document.getElementById('createAccountBtn').addEventListener('click', function () {
+                    createAccount();
+                });
+
+                // Clear logs button
+                document.getElementById('clearLogsBtn').addEventListener('click', function () {
+                    clearLogs();
+                });
+
+                // Mobile menu toggle (for Bootstrap 5)
+                const navbarToggler = document.querySelector('.navbar-toggler');
+                const mobileSidebar = document.getElementById('mobileSidebar');
+
+                if (navbarToggler && mobileSidebar) {
+                    navbarToggler.addEventListener('click', function () {
+                        mobileSidebar.classList.toggle('show');
+                    });
                 }
-            }
 
-            function updateAccountList(accounts) {
-                // Update dropdown
-                accountSelectElement.innerHTML = '';
-                accounts.forEach(account => {
-                    const option = document.createElement('option');
-                    option.value = account.accountId || account;
-                    option.textContent = account.accountId || account;
-                    if ((account.accountId || account) === activeAccount) {
-                        option.selected = true;
+                // Close mobile sidebar when clicking outside
+                document.addEventListener('click', function (event) {
+                    if (mobileSidebar && mobileSidebar.classList.contains('show') &&
+                        !event.target.closest('#mobileSidebar') &&
+                        !event.target.closest('.navbar-toggler')) {
+                        mobileSidebar.classList.remove('show');
                     }
-                    accountSelectElement.appendChild(option);
-                });
-                // Update list
-                accountsListElement.innerHTML = '';
-                accounts.forEach(account => {
-                    const accountId = account.accountId || account;
-                    const status = account.status || 'unknown';
-                    const li = document.createElement('li');
-                    li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                    li.textContent = accountId;
-                    if (accountId === activeAccount) {
-                        const badge = document.createElement('span');
-                        badge.className = 'badge bg-primary rounded-pill';
-                        badge.textContent = 'Active';
-                        li.appendChild(badge);
-                    } else {
-                        const activateBtn = document.createElement('button');
-                        activateBtn.className = 'btn btn-sm btn-outline-primary';
-                        activateBtn.textContent = 'Activate';
-                        activateBtn.addEventListener('click', () => switchAccount(accountId));
-                        li.appendChild(activateBtn);
-                    }
-                    accountsListElement.appendChild(li);
                 });
             }
 
-            function updateTemplatesList() {
-                templatesList.innerHTML = '';
-                if (templates.length === 0) {
-                    templatesList.innerHTML = '<tr><td colspan="3">No templates saved yet</td></tr>';
+            function logoutAccount() {
+                if (!confirm('Are you sure you want to logout from this account?')) {
                     return;
                 }
-                templates.forEach(template => {
-                    const row = document.createElement('tr');
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = template.name;
-                    const varsCell = document.createElement('td');
-                    const vars = extractVariables(template.content);
-                    varsCell.innerHTML = vars.map(v => `<span class="template-variable">${v}</span>`)
-                        .join(
-                            ' ');
-                    const actionsCell = document.createElement('td');
-                    const useBtn = document.createElement('button');
-                    useBtn.className = 'btn btn-sm btn-primary me-2';
-                    useBtn.textContent = 'Use';
-                    useBtn.addEventListener('click', () => {
-                        templateSelect.value = template.name;
-                        templatePreview.innerHTML = renderTemplatePreview(template.content);
-                        // Switch to bulk message tab and select template option
-                        document.querySelector('[href="#bulk-message"]').click();
-                        useTemplateRadio.checked = true;
-                        templateSection.style.display = 'block';
-                        customMessageSection.style.display = 'none';
-                    });
-                    const editBtn = document.createElement('button');
-                    editBtn.className = 'btn btn-sm btn-outline-secondary me-2';
-                    editBtn.textContent = 'Edit';
-                    editBtn.addEventListener('click', () => {
-                        templateName.value = template.name;
-                        templateContent.value = template.content;
-                        detectTemplateVariables();
-                    });
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn btn-sm btn-outline-danger';
-                    deleteBtn.textContent = 'Delete';
-                    deleteBtn.addEventListener('click', () => {
-                        if (confirm(`Delete template "${template.name}"?`)) {
-                            deleteTemplate(template.name);
-                        }
-                    });
-                    actionsCell.appendChild(useBtn);
-                    actionsCell.appendChild(editBtn);
-                    actionsCell.appendChild(deleteBtn);
-                    row.appendChild(nameCell);
-                    row.appendChild(varsCell);
-                    row.appendChild(actionsCell);
-                    templatesList.appendChild(row);
-                });
-            }
 
-            function updateTemplateDropdown() {
-                templateSelect.innerHTML = '<option value="">-- Select a template --</option>';
-                templates.forEach(template => {
-                    const option = document.createElement('option');
-                    option.value = template.name;
-                    option.textContent = template.name;
-                    templateSelect.appendChild(option);
-                });
-            }
-
-            function switchAccount(accountId) {
-                fetch('/api/accounts/activate', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            accountId
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
+                fetch('/api/accounts/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ accountId: currentAccount })
+                })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            activeAccount = accountId;
-                            currentAccountElement.textContent = accountId;
-                            setupEventSource(accountId);
-                            fetchAccounts();
-                            logEvent('Account switched', `Active account is now ${accountId}`);
+                            logEvent(`[Account] Logged out: ${currentAccount}`);
+                            document.getElementById('connectionStatus').textContent = '❌ Logged out';
+                            document.getElementById('qrStatus').textContent = 'Please refresh to get new QR code';
+                            document.getElementById('qrCode').innerHTML = 'Logged out';
+                            isConnected = false;
+
+                            // Refresh QR code
+                            fetch(`/api/accounts/${currentAccount}/refresh`, {
+                                method: 'POST'
+                            }).then(() => {
+                                logEvent('[Account] QR refresh requested');
+                            });
                         } else {
-                            logEvent('Error', data.error || 'Failed to switch account');
+                            logEvent(`[Error] Logout failed: ${data.error}`);
                         }
                     })
                     .catch(error => {
-                        logEvent('Error', error.message);
+                        logEvent(`[Error] Logout error: ${error.message}`);
                     });
             }
 
-            function logoutAccount(accountId) {
-                if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
-                    fetch('/api/accounts/logout', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                accountId
-                            })
-                        })
-                        .then(response => {
-                            if (!response.ok) throw new Error('Network response was not ok');
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.success) {
-                                logEvent('Logged out', `Account ${accountId} has been logged out`);
-                                if (accountId === activeAccount) {
-                                    // Reset UI for logged out account
-                                    qrCodeElement.innerHTML = '';
-                                    qrStatusElement.textContent = 'Account logged out';
-                                    connectionStatusElement.textContent = 'Logged out';
-                                }
-                                fetchAccounts();
-                            } else {
-                                logEvent('Error', data.error || 'Failed to logout');
-                            }
-                        })
-                        .catch(error => {
-                            logEvent('Error', error.message);
-                        });
-                }
-            }
+            function sendSingleMessage() {
+                const phone = document.getElementById('phoneNumber').value.trim();
+                let message = document.getElementById('messageText').value.trim();
+                const mediaFile = document.getElementById('mediaFile').files[0];
+                const mediaCaption = document.getElementById('mediaCaption').value.trim();
 
-            function createAccount() {
-                const accountId = newAccountIdElement.value.trim();
-                if (!accountId) {
-                    alert('Account ID is required');
+                if (!phone) {
+                    showStatus('Please enter a phone number', 'error');
                     return;
                 }
-                fetch('/api/accounts', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            accountId
-                        })
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            logEvent('Account created', `New account ${accountId} created`);
-                            newAccountIdElement.value = '';
-                            fetchAccounts();
-                            // Automatically switch to new account
-                            switchAccount(accountId);
-                        } else {
-                            logEvent('Error', data.error || 'Failed to create account');
-                            alert(data.error || 'Failed to create account');
-                        }
-                    })
-                    .catch(error => {
-                        logEvent('Error', error.message);
-                        alert(error.message);
-                    });
-            }
 
-            function uploadMedia(file, isBulk) {
+                if (!message && !mediaFile) {
+                    showStatus('Please enter a message or attach media', 'error');
+                    return;
+                }
+
+                const sendBtn = document.getElementById('sendMessageBtn');
+                const originalText = sendBtn.textContent;
+                sendBtn.disabled = true;
+                sendBtn.textContent = 'Sending...';
+                showStatus('Sending message...', 'info');
+
                 const formData = new FormData();
-                formData.append('file', file);
-                const statusElement = isBulk ? sendStatusElement : sendStatusElement;
-                const previewElement = isBulk ? mediaPreviewBulk : mediaPreviewElement;
-                const fileType = isBulk ? 'bulk ' : '';
-                statusElement.textContent = `Uploading ${fileType}media...`;
-                statusElement.className = 'mt-2 text-info';
-                fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.success) {
-                            if (isBulk) {
-                                bulkMediaUrl = data.url;
-                            } else {
-                                mediaUrl = data.url;
-                            }
-                            previewElement.innerHTML = `
-                            <div class="alert alert-success p-2">
-                                <small>File ready: ${file.name}</small>
-                                <img src="${data.url}" class="preview-image mt-1">
-                            </div>
-                        `;
-                            statusElement.textContent = `${fileType}Media uploaded successfully!`;
-                            statusElement.className = 'mt-2 text-success';
-                        } else {
-                            statusElement.textContent =
-                                `Error: ${data.error || `Failed to upload ${fileType}media`}`;
-                            statusElement.className = 'mt-2 text-danger';
-                        }
-                    })
-                    .catch(error => {
-                        statusElement.textContent = `Error: ${error.message}`;
-                        statusElement.className = 'mt-2 text-danger';
-                    });
-            }
+                formData.append('phone', phone);
+                formData.append('message', message);
+                formData.append('accountId', currentAccount);
+                formData.append('mediaCaption', mediaCaption);
 
-            function sendMessage() {
-                const phone = phoneNumberElement.value.trim();
-                const message = messageTextElement.value.trim();
-                const caption = mediaCaptionElement.value.trim();
-                if (!phone) {
-                    sendStatusElement.textContent = 'Phone number is required';
-                    sendStatusElement.className = 'mt-2 text-danger';
-                    return;
+                if (mediaFile) {
+                    formData.append('media', mediaFile);
                 }
-                if (!message && !mediaUrl) {
-                    sendStatusElement.textContent = 'Either message or media is required';
-                    sendStatusElement.className = 'mt-2 text-danger';
-                    return;
-                }
-                const payload = {
-                    phone,
-                    message,
-                    accountId: activeAccount
-                };
-                if (mediaUrl) {
-                    payload.media = {
-                        url: mediaUrl,
-                        caption: caption
-                    };
-                }
-                sendStatusElement.textContent = 'Sending message...';
-                sendStatusElement.className = 'mt-2 text-info';
+
                 fetch('/api/send-message', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
+                    method: 'POST',
+                    body: formData
+                })
+                    .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            sendStatusElement.textContent = 'Message sent successfully!';
-                            sendStatusElement.className = 'mt-2 text-success';
-                            // Clear form
-                            messageTextElement.value = '';
-                            mediaFileElement.value = '';
-                            mediaCaptionElement.value = '';
-                            mediaPreviewElement.innerHTML = '';
-                            mediaUrl = null;
+                            showStatus('✅ Message sent successfully!', 'success');
+                            logEvent(`[Message] Sent to ${phone}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`);
                         } else {
-                            sendStatusElement.textContent = data.message || 'Failed to send message';
-                            sendStatusElement.className = 'mt-2 text-danger';
+                            showStatus(`❌ Failed: ${data.error}`, 'error');
+                            logEvent(`[Error] Failed to send to ${phone}: ${data.error}`);
                         }
                     })
                     .catch(error => {
-                        sendStatusElement.textContent = `Error: ${error.message}`;
-                        sendStatusElement.className = 'mt-2 text-danger';
+                        showStatus('❌ Network error', 'error');
+                        logEvent(`[Error] Network error: ${error.message}`);
+                    })
+                    .finally(() => {
+                        sendBtn.disabled = false;
+                        sendBtn.textContent = originalText;
                     });
             }
 
-            function logEvent(type, data) {
-                const now = new Date();
-                const timeString = now.toLocaleTimeString();
-                let message = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-                const eventElement = document.createElement('div');
-                eventElement.innerHTML = `<strong>[${timeString}] ${type}:</strong> ${message}`;
-                eventLogElement.appendChild(eventElement);
-                eventLogElement.scrollTop = eventLogElement.scrollHeight;
-            }
-            // Bulk message functions
-            function previewBulkMessages() {
-                const file = recipientsFile.files[0];
-                if (!file) {
-                    alert('Please upload an Excel file with recipients');
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, {
-                            type: 'array'
-                        });
-                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                        if (jsonData.length === 0) {
-                            alert('No data found in the Excel file');
-                            return;
-                        }
-                        bulkRecipients = jsonData;
-                        // Get message template or custom message
-                        let messageTemplate = '';
-                        if (useTemplateRadio.checked) {
-                            const templateName = templateSelect.value;
-                            const template = templates.find(t => t.name === templateName);
-                            if (!template) {
-                                alert('Please select a template');
-                                return;
-                            }
-                            messageTemplate = template.content;
-                        } else {
-                            messageTemplate = bulkMessageText.value;
-                            if (!messageTemplate) {
-                                alert('Please enter a message');
-                                return;
-                            }
-                        }
-                        // Generate preview
-                        bulkPreviewContent.innerHTML = '';
-                        const previewCount = Math.min(10, bulkRecipients.length);
-                        for (let i = 0; i < previewCount; i++) {
-                            const recipient = bulkRecipients[i];
-                            let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient
-                                .number || recipient.Number || recipient.NUMBER;
-                            if (!phone) {
-                                // Try to find phone number in any column
-                                for (const key in recipient) {
-                                    if (/phone|number/i.test(key) && recipient[key]) {
-                                        phone = recipient[key];
-                                        break;
-                                    }
-                                }
-                            }
-                            if (!phone) {
-                                continue;
-                            }
-                            let message = replaceTemplateVariables(messageTemplate, recipient);
-                            const previewItem = document.createElement('div');
-                            previewItem.className = 'preview-item';
-                            previewItem.innerHTML = `
-                                <strong>To: ${phone}</strong><br>
-                                <small>${message}</small>
-                            `;
-                            bulkPreviewContent.appendChild(previewItem);
-                        }
-                        bulkPreview.style.display = 'block';
-                        sendBulkBtn.disabled = false;
-                        logEvent('Bulk Preview',
-                            `Loaded ${bulkRecipients.length} recipients, showing first ${previewCount}`);
-                    } catch (error) {
-                        console.error('Error processing Excel file:', error);
-                        alert('Error processing Excel file: ' + error.message);
-                        logEvent('Error', 'Failed to process Excel file: ' + error.message);
-                    }
-                };
-                reader.readAsArrayBuffer(file);
-            }
+            function sendBulkMessages() {
+                const useTemplate = document.getElementById('useTemplate').checked;
+                const phoneNumbersText = document.getElementById('phoneNumbers').value.trim();
+                const mediaFile = document.getElementById('bulkMediaFile').files[0];
+                const mediaCaption = document.getElementById('bulkMediaCaption').value.trim();
 
-            function startBulkSend() {
-                if (bulkRecipients.length === 0) {
-                    alert('No recipients loaded. Please preview first.');
-                    return;
-                }
-                if (!confirm(`Are you sure you want to send ${bulkRecipients.length} messages?`)) {
-                    return;
-                }
-                currentBulkJob = {
-                    total: bulkRecipients.length,
-                    sent: 0,
-                    failed: 0,
-                    currentIndex: 0,
-                    isRunning: true
-                };
-                bulkProgress.style.display = 'block';
-                bulkProgressBar.style.width = '0%';
-                bulkProgressBar.textContent = '0%';
-                bulkProgressText.textContent = 'Starting bulk send...';
-                bulkStats.innerHTML = `Total: ${currentBulkJob.total} | Sent: 0 | Failed: 0`;
-                sendBulkBtn.disabled = true;
-                previewBulkBtn.disabled = true;
-                // Start sending messages with delay
-                bulkJobInterval = setInterval(processNextBulkMessage, delayBetweenMessages.value * 1000);
-                processNextBulkMessage(); // Start immediately for first message
-            }
-
-            function processNextBulkMessage() {
-                if (!currentBulkJob.isRunning || currentBulkJob.currentIndex >= bulkRecipients.length) {
-                    clearInterval(bulkJobInterval);
-                    currentBulkJob.isRunning = false;
-                    bulkProgressText.textContent = 'Bulk send completed!';
-                    sendBulkBtn.disabled = false;
-                    previewBulkBtn.disabled = false;
-                    return;
-                }
-                const recipient = bulkRecipients[currentBulkJob.currentIndex];
-                currentBulkJob.currentIndex++;
-                let phone = recipient.phone || recipient.Phone || recipient.PHONE || recipient.number ||
-                    recipient
-                    .Number || recipient.NUMBER;
-                if (!phone) {
-                    // Try to find phone number in any column
-                    for (const key in recipient) {
-                        if (/phone|number/i.test(key) && recipient[key]) {
-                            phone = recipient[key];
-                            break;
-                        }
-                    }
-                }
-                if (!phone) {
-                    currentBulkJob.failed++;
-                    updateBulkProgress();
-                    logEvent('Bulk Error', `Recipient ${currentBulkJob.currentIndex} has no phone number`);
-                    return;
-                }
-                // Get message
                 let message = '';
-                if (useTemplateRadio.checked) {
-                    const templateName = templateSelect.value;
-                    const template = templates.find(t => t.name === templateName);
-                    message = replaceTemplateVariables(template.content, recipient);
+                if (useTemplate) {
+                    const templateSelect = document.getElementById('templateSelect');
+                    if (!templateSelect.value) {
+                        showBulkStatus('Please select a template', 'error');
+                        return;
+                    }
+                    message = templateSelect.options[templateSelect.selectedIndex].text;
                 } else {
-                    message = replaceTemplateVariables(bulkMessageText.value, recipient);
+                    message = document.getElementById('bulkMessageText').value.trim();
+                    if (!message) {
+                        showBulkStatus('Please enter a message', 'error');
+                        return;
+                    }
                 }
-                const payload = {
-                    phone,
-                    message
-                };
-                if (bulkMediaUrl) {
-                    payload.media = {
-                        url: bulkMediaUrl,
-                        caption: mediaCaptionBulk.value
-                    };
+
+                if (!phoneNumbersText) {
+                    showBulkStatus('Please enter phone numbers', 'error');
+                    return;
                 }
-                bulkProgressText.textContent =
-                    `Sending to ${phone} (${currentBulkJob.currentIndex}/${currentBulkJob.total})`;
-                fetch('/api/send-message', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    })
-                    .then(response => {
-                        if (!response.ok) throw new Error('Network response was not ok');
-                        return response.json();
-                    })
+
+                const phoneNumbers = phoneNumbersText.split('\n')
+                    .map(num => num.trim())
+                    .filter(num => num.length > 0);
+
+                if (phoneNumbers.length === 0) {
+                    showBulkStatus('No valid phone numbers found', 'error');
+                    return;
+                }
+
+                // Show progress
+                document.getElementById('progressContainer').style.display = 'block';
+                const progressBar = document.getElementById('progressBar');
+                const progressDetails = document.getElementById('progressDetails');
+
+                const sendBtn = document.getElementById('sendBulkBtn');
+                const originalText = sendBtn.textContent;
+                sendBtn.disabled = true;
+                showBulkStatus(`Sending ${phoneNumbers.length} messages...`, 'info');
+
+                let processed = 0;
+                let successful = 0;
+                let failed = 0;
+
+                // Process each phone number
+                phoneNumbers.forEach((phone, index) => {
+                    setTimeout(() => {
+                        const formData = new FormData();
+                        formData.append('phone', phone);
+                        formData.append('message', message);
+                        formData.append('accountId', currentAccount);
+                        formData.append('mediaCaption', mediaCaption);
+
+                        if (mediaFile) {
+                            formData.append('media', mediaFile);
+                        }
+
+                        fetch('/api/send-message', {
+                            method: 'POST',
+                            body: formData
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                processed++;
+                                if (data.success) {
+                                    successful++;
+                                    logEvent(`[Bulk] Sent to ${phone}: Success`);
+                                } else {
+                                    failed++;
+                                    logEvent(`[Bulk] Failed to send to ${phone}: ${data.error}`);
+                                }
+
+                                // Update progress
+                                const progress = (processed / phoneNumbers.length) * 100;
+                                progressBar.style.width = `${progress}%`;
+                                progressBar.textContent = `${Math.round(progress)}%`;
+                                progressDetails.textContent = `Processed: ${processed}/${phoneNumbers.length} | Successful: ${successful} | Failed: ${failed}`;
+
+                                // If all processed
+                                if (processed === phoneNumbers.length) {
+                                    sendBtn.disabled = false;
+                                    sendBtn.textContent = originalText;
+                                    showBulkStatus(`✅ Completed: ${successful} successful, ${failed} failed`, 'success');
+                                }
+                            })
+                            .catch(error => {
+                                processed++;
+                                failed++;
+                                logEvent(`[Bulk] Error sending to ${phone}: ${error.message}`);
+
+                                const progress = (processed / phoneNumbers.length) * 100;
+                                progressBar.style.width = `${progress}%`;
+                                progressBar.textContent = `${Math.round(progress)}%`;
+                                progressDetails.textContent = `Processed: ${processed}/${phoneNumbers.length} | Successful: ${successful} | Failed: ${failed}`;
+
+                                if (processed === phoneNumbers.length) {
+                                    sendBtn.disabled = false;
+                                    sendBtn.textContent = originalText;
+                                    showBulkStatus(`✅ Completed: ${successful} successful, ${failed} failed`, 'success');
+                                }
+                            });
+                    }, index * 1000); // 1 second delay between messages to avoid rate limiting
+                });
+            }
+
+            function loadTemplates() {
+                fetch('/api/templates')
+                    .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            currentBulkJob.sent++;
-                            logEvent('Bulk Sent', `Message sent to ${phone}`);
+                            const templatesList = document.getElementById('templatesList');
+                            const templateSelect = document.getElementById('templateSelect');
+
+                            if (data.templates.length === 0) {
+                                templatesList.innerHTML = '<p>No templates found. Create your first template above.</p>';
+                                templateSelect.innerHTML = '<option value="">-- No templates available --</option>';
+                                return;
+                            }
+
+                            // Update template select dropdown
+                            templateSelect.innerHTML = '<option value="">-- Select a template --</option>';
+                            data.templates.forEach(template => {
+                                const option = document.createElement('option');
+                                option.value = template._id;
+                                option.textContent = template.name;
+                                templateSelect.appendChild(option);
+                            });
+
+                            // Update templates list
+                            templatesList.innerHTML = data.templates.map(template => `
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${template.name}</h5>
+                                        <p class="card-text">${template.content}</p>
+                                        <small class="text-muted">Created: ${new Date(template.createdAt).toLocaleDateString()}</small>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary use-template" data-id="${template._id}">Use</button>
+                                            <button class="btn btn-sm btn-outline-secondary edit-template" data-id="${template._id}">Edit</button>
+                                            <button class="btn btn-sm btn-outline-danger delete-template" data-id="${template._id}">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+
+                            // Add event listeners to template buttons
+                            document.querySelectorAll('.use-template').forEach(btn => {
+                                btn.addEventListener('click', function () {
+                                    const templateId = this.getAttribute('data-id');
+                                    const template = data.templates.find(t => t._id === templateId);
+                                    if (template) {
+                                        // Switch to bulk message tab and select this template
+                                        const tab = new bootstrap.Tab(document.querySelector('a[href="#bulk-message"]'));
+                                        tab.show();
+                                        document.getElementById('useTemplate').checked = true;
+                                        document.getElementById('templateSection').style.display = 'block';
+                                        document.getElementById('customMessageSection').style.display = 'none';
+                                        document.getElementById('templateSelect').value = templateId;
+                                        updateTemplatePreview();
+                                    }
+                                });
+                            });
+
+                            document.querySelectorAll('.edit-template').forEach(btn => {
+                                btn.addEventListener('click', function () {
+                                    const templateId = this.getAttribute('data-id');
+                                    const template = data.templates.find(t => t._id === templateId);
+                                    if (template) {
+                                        document.getElementById('templateName').value = template.name;
+                                        document.getElementById('templateContent').value = template.content;
+                                        // You might want to add an update mechanism here
+                                    }
+                                });
+                            });
+
+                            document.querySelectorAll('.delete-template').forEach(btn => {
+                                btn.addEventListener('click', function () {
+                                    const templateId = this.getAttribute('data-id');
+                                    if (confirm('Are you sure you want to delete this template?')) {
+                                        deleteTemplate(templateId);
+                                    }
+                                });
+                            });
+
                         } else {
-                            currentBulkJob.failed++;
-                            logEvent('Bulk Error',
-                                `Failed to send to ${phone}: ${data.message || 'Unknown error'}`);
+                            document.getElementById('templatesList').innerHTML = `<p class="text-danger">Error loading templates: ${data.error}</p>`;
                         }
-                        updateBulkProgress();
                     })
                     .catch(error => {
-                        currentBulkJob.failed++;
-                        logEvent('Bulk Error', `Failed to send to ${phone}: ${error.message}`);
-                        updateBulkProgress();
+                        document.getElementById('templatesList').innerHTML = `<p class="text-danger">Network error: ${error.message}</p>`;
                     });
             }
 
-            function updateBulkProgress() {
-                const progress = Math.round((currentBulkJob.currentIndex / currentBulkJob.total) * 100);
-                bulkProgressBar.style.width = `${progress}%`;
-                bulkProgressBar.textContent = `${progress}%`;
-                bulkStats.innerHTML =
-                    `Total: ${currentBulkJob.total} | Sent: ${currentBulkJob.sent} | Failed: ${currentBulkJob.failed}`;
-                if (currentBulkJob.currentIndex >= currentBulkJob.total) {
-                    bulkProgressText.textContent = 'Bulk send completed!';
-                    clearInterval(bulkJobInterval);
-                    sendBulkBtn.disabled = false;
-                    previewBulkBtn.disabled = false;
+            function loadAccounts() {
+                fetch('/api/accounts')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const accountsList = document.getElementById('accountsList');
+                            const accountSelect = document.getElementById('accountSelect');
+
+                            // Update account select dropdown
+                            accountSelect.innerHTML = '';
+                            data.accounts.forEach(account => {
+                                const option = document.createElement('option');
+                                option.value = account.accountId;
+                                option.textContent = account.accountId;
+                                if (account.accountId === currentAccount) {
+                                    option.selected = true;
+                                }
+                                accountSelect.appendChild(option);
+                            });
+
+                            // Update accounts list
+                            if (data.accounts.length === 0) {
+                                accountsList.innerHTML = '<p>No accounts found. Create your first account above.</p>';
+                                return;
+                            }
+
+                            accountsList.innerHTML = data.accounts.map(account => `
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${account.accountId}</h5>
+                                        <p class="card-text">
+                                            Status: <span class="badge ${getStatusBadge(account.status)}">${account.status}</span><br>
+                                            Last Activity: ${new Date(account.lastActivity).toLocaleString()}<br>
+                                            Created: ${new Date(account.createdAt).toLocaleDateString()}
+                                        </p>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary switch-account" data-id="${account.accountId}">Switch</button>
+                                            <button class="btn btn-sm btn-outline-danger logout-account" data-id="${account.accountId}">Logout</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+
+                            // Add event listeners to account buttons
+                            document.querySelectorAll('.switch-account').forEach(btn => {
+                                btn.addEventListener('click', function () {
+                                    const accountId = this.getAttribute('data-id');
+                                    currentAccount = accountId;
+                                    document.getElementById('currentAccount').textContent = currentAccount;
+                                    document.getElementById('currentAccountNav').textContent = currentAccount;
+                                    document.getElementById('accountSelect').value = currentAccount;
+                                    logEvent(`[Account] Switched to: ${currentAccount}`);
+                                    connectToSSE();
+                                });
+                            });
+
+                            document.querySelectorAll('.logout-account').forEach(btn => {
+                                btn.addEventListener('click', function () {
+                                    const accountId = this.getAttribute('data-id');
+                                    if (confirm(`Are you sure you want to logout from ${accountId}?`)) {
+                                        fetch('/api/accounts/logout', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({ accountId })
+                                        })
+                                            .then(response => response.json())
+                                            .then(data => {
+                                                if (data.success) {
+                                                    logEvent(`[Account] Logged out: ${accountId}`);
+                                                    loadAccounts(); // Refresh the list
+                                                } else {
+                                                    logEvent(`[Error] Logout failed: ${data.error}`);
+                                                }
+                                            })
+                                            .catch(error => {
+                                                logEvent(`[Error] Logout error: ${error.message}`);
+                                            });
+                                    }
+                                });
+                            });
+
+                        } else {
+                            document.getElementById('accountsList').innerHTML = `<p class="text-danger">Error loading accounts: ${data.error}</p>`;
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('accountsList').innerHTML = `<p class="text-danger">Network error: ${error.message}</p>`;
+                    });
+            }
+
+            function getStatusBadge(status) {
+                switch (status) {
+                    case 'ready': return 'bg-success';
+                    case 'authenticated': return 'bg-primary';
+                    case 'initialized': return 'bg-secondary';
+                    case 'disconnected': return 'bg-danger';
+                    default: return 'bg-secondary';
                 }
-            }
-            // Template functions
-            function detectTemplateVariables() {
-                const content = templateContent.value;
-                const variables = extractVariables(content);
-                templateVariables.innerHTML = variables.length > 0 ?
-                    variables.map(v => `<span class="template-variable">${v}</span>`).join(' ') :
-                    'No variables detected';
-            }
-
-            function extractVariables(content) {
-                const regex = /\{\{([^}]+)\}\}/g;
-                const matches = [];
-                let match;
-                while ((match = regex.exec(content)) !== null) {
-                    if (!matches.includes(match[1])) {
-                        matches.push(match[1]);
-                    }
-                }
-                return matches;
-            }
-
-            function replaceTemplateVariables(template, variables) {
-                return template.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-                    return variables[varName] || variables[varName.toLowerCase()] || variables[varName
-                        .toUpperCase()] || '';
-                });
-            }
-
-            function renderTemplatePreview(content) {
-                const variables = extractVariables(content);
-                let preview = content;
-                variables.forEach(v => {
-                    preview = preview.replace(new RegExp(`\\{\\{${v}\\}\\}`, 'g'),
-                        `<span class="template-variable">{{${v}}}</span>`);
-                });
-                return preview;
             }
 
             function saveTemplate() {
-                const name = templateName.value.trim();
-                const content = templateContent.value.trim();
-                if (!name) {
-                    alert('Template name is required');
+                const name = document.getElementById('templateName').value.trim();
+                const content = document.getElementById('templateContent').value.trim();
+
+                if (!name || !content) {
+                    showTemplateStatus('Please fill in all fields', 'error');
                     return;
                 }
-                if (!content) {
-                    alert('Template content is required');
-                    return;
-                }
-                // Check if template with this name already exists
-                const existingIndex = templates.findIndex(t => t.name === name);
-                if (existingIndex >= 0) {
-                    // Update existing template
-                    templates[existingIndex].content = content;
-                } else {
-                    // Add new template
-                    templates.push({
-                        name,
-                        content
+
+                fetch('/api/templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ name, content })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showTemplateStatus('✅ Template saved successfully!', 'success');
+                            document.getElementById('templateName').value = '';
+                            document.getElementById('templateContent').value = '';
+                            loadTemplates();
+                        } else {
+                            showTemplateStatus(`❌ Failed: ${data.error}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showTemplateStatus('❌ Network error', 'error');
                     });
-                }
-                // Save to localStorage (in a real app, you would save to your backend)
-                localStorage.setItem('whatsappTemplates', JSON.stringify(templates));
-                // Update UI
-                updateTemplatesList();
-                updateTemplateDropdown();
-                // Clear form
-                templateName.value = '';
-                templateContent.value = '';
-                templateVariables.innerHTML = 'No variables detected';
-                logEvent('Template Saved',
-                    `Template "${name}" saved with ${extractVariables(content).length} variables`);
             }
 
-            function deleteTemplate(name) {
-                templates = templates.filter(t => t.name !== name);
-                localStorage.setItem('whatsappTemplates', JSON.stringify(templates));
-                updateTemplatesList();
-                updateTemplateDropdown();
-                logEvent('Template Deleted', `Template "${name}" deleted`);
-            }
+            function createAccount() {
+                const accountId = document.getElementById('newAccountId').value.trim();
 
-            function showTestTemplateSection() {
-                const content = templateContent.value.trim();
-                if (!content) {
-                    alert('Please enter template content first');
+                if (!accountId) {
+                    showAccountStatus('Please enter an account ID', 'error');
                     return;
                 }
-                const variables = extractVariables(content);
-                testVariablesInputs.innerHTML = '';
-                if (variables.length === 0) {
-                    testVariablesInputs.innerHTML = '<p>No variables in this template</p>';
-                } else {
-                    variables.forEach(v => {
-                        const div = document.createElement('div');
-                        div.className = 'mb-2';
-                        div.innerHTML = `
-                            <label for="var_${v}" class="form-label">${v}</label>
-                            <input type="text" class="form-control" id="var_${v}" placeholder="Enter value for ${v}">
-                        `;
-                        testVariablesInputs.appendChild(div);
+
+                fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ accountId })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showAccountStatus('✅ Account created successfully!', 'success');
+                            document.getElementById('newAccountId').value = '';
+                            loadAccounts();
+                        } else {
+                            showAccountStatus(`❌ Failed: ${data.error}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showAccountStatus('❌ Network error', 'error');
                     });
-                }
-                testTemplateSection.style.display = 'block';
             }
 
-            function testTemplate() {
-                const content = templateContent.value;
-                const variables = extractVariables(content);
-                const testData = {};
-                variables.forEach(v => {
-                    const input = document.getElementById(`var_${v}`);
-                    testData[v] = input ? input.value : '';
+            function deleteTemplate(templateId) {
+                fetch(`/api/templates/${templateId}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showTemplateStatus('✅ Template deleted successfully!', 'success');
+                            loadTemplates();
+                        } else {
+                            showTemplateStatus(`❌ Failed: ${data.error}`, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showTemplateStatus('❌ Network error', 'error');
+                    });
+            }
+
+            function updateTemplatePreview() {
+                const templateSelect = document.getElementById('templateSelect');
+                const templateId = templateSelect.value;
+                const templateText = templateSelect.options[templateSelect.selectedIndex]?.text || '';
+
+                if (templateId) {
+                    document.getElementById('templatePreview').innerHTML = `
+                        <strong>Preview:</strong><br>
+                        ${templateText.replace(/\{\{(\w+)\}\}/g, '<span class="template-variable">{{$1}}</span>')}
+                    `;
+                } else {
+                    document.getElementById('templatePreview').innerHTML = 'Select a template to see preview';
+                }
+            }
+
+            function previewMediaFile(input, previewId) {
+                const file = input.files[0];
+                const preview = document.getElementById(previewId);
+
+                if (file) {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            preview.innerHTML = `<img src="${e.target.result}" class="preview-image" alt="Preview">`;
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        preview.innerHTML = `<div class="text-info"><i class="bi bi-file-earmark"></i> ${file.name} (${(file.size / 1024).toFixed(1)}KB)</div>`;
+                    }
+                } else {
+                    preview.innerHTML = '';
+                }
+            }
+
+            function showStatus(message, type) {
+                const statusDiv = document.getElementById('sendStatus');
+                statusDiv.innerHTML = `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+
+            function showBulkStatus(message, type) {
+                const statusDiv = document.getElementById('bulkStatus');
+                statusDiv.innerHTML = `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+            }
+
+            function showTemplateStatus(message, type) {
+                const statusDiv = document.getElementById('templateStatus');
+                statusDiv.innerHTML = `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+
+            function showAccountStatus(message, type) {
+                const statusDiv = document.getElementById('accountStatus');
+                statusDiv.innerHTML = `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+                setTimeout(() => {
+                    statusDiv.innerHTML = '';
+                }, 5000);
+            }
+
+            function logEvent(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                eventLog.innerHTML += `[${timestamp}] ${message}<br>`;
+                eventLog.scrollTop = eventLog.scrollHeight;
+            }
+
+            function clearLogs() {
+                eventLog.innerHTML = '[System] Logs cleared at: ' + new Date().toLocaleTimeString() + '<br>';
+            }
+
+            // Initialize template preview
+            updateTemplatePreview();
+
+            // Check server health on startup
+            fetch('/api/health')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        logEvent('[System] Server is running');
+                    } else {
+                        logEvent('[System] Server health check failed');
+                    }
+                })
+                .catch(error => {
+                    logEvent('[System] Cannot connect to server: ' + error.message);
                 });
-                const result = replaceTemplateVariables(content, testData);
-                testTemplatePreview.innerHTML = result;
-                // Also show in modal
-                testTemplateResult.innerHTML = `
-                    <h6>Test Result:</h6>
-                    <div class="template-preview">${result}</div>
-                    <div class="mt-3">
-                        <h6>Variables Used:</h6>
-                        <pre>${JSON.stringify(testData, null, 2)}</pre>
-                    </div>
-                `;
-                testTemplateModal.show();
-            }
-
-            function insertAtCursor(textarea, text) {
-                const startPos = textarea.selectionStart;
-                const endPos = textarea.selectionEnd;
-                const beforeText = textarea.value.substring(0, startPos);
-                const afterText = textarea.value.substring(endPos, textarea.value.length);
-                textarea.value = beforeText + text + afterText;
-                textarea.selectionStart = startPos + text.length;
-                textarea.selectionEnd = startPos + text.length;
-                textarea.focus();
-            }
         });
     </script>
 </body>
