@@ -383,6 +383,7 @@ app.get("/api/accounts/:accountId/events", (req, res) => {
 });
 
 // Send message
+// Send message
 app.post("/api/send-message", async (req, res) => {
   let { phone, message, media, accountId = "default" } = req.body;
 
