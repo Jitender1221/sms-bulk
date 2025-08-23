@@ -146,7 +146,6 @@ function initializeWhatsAppClient(accountId) {
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
-      executablePath: "/usr/bin/chromium",
       headless: true,
       args: [
         "--no-sandbox",
