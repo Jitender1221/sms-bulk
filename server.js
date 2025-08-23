@@ -23,13 +23,25 @@ mongoose.connect(
     useUnifiedTopology: true,
   }
 );
+
+// Account Schema
 const accountSchema = new mongoose.Schema({
   accountId: { type: String, required: true, unique: true },
   status: { type: String, default: "initialized" },
   lastActivity: { type: Date, default: Date.now },
   createdAt: { type: Date, default: Date.now },
 });
+
+// Template Schema
+const templateSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  content: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 const Account = mongoose.model("Account", accountSchema);
+const Template = mongoose.model("Template", templateSchema);
 
 /* ---------- Express ---------- */
 app.use(
@@ -75,7 +87,7 @@ function broadcast(accountId, type, data) {
   });
 }
 
-function initWA(accountId) {
+function initializeWhatsAppClient(accountId) {
   if (whatsappClients[accountId]) {
     if (whatsappClients[accountId].isReady) {
       broadcast(accountId, "ready", { message: "✅ Already connected" });
@@ -166,6 +178,7 @@ function initWA(accountId) {
 app.get("/api/health", (_req, res) =>
   res.json({ success: true, message: "Server is running" })
 );
+
 app.get("/api/accounts", async (_req, res) => {
   try {
     const accounts = await Account.find().sort({ createdAt: -1 });
@@ -191,7 +204,7 @@ app.post("/api/accounts", async (req, res) => {
         .json({ success: false, error: "Account already exists" });
 
     await new Account({ accountId }).save();
-    initWA(accountId);
+    initializeWhatsAppClient(accountId);
     res.json({ success: true, message: `Account ${accountId} initialized` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -204,7 +217,7 @@ app.post("/api/accounts/activate", (req, res) => {
     return res
       .status(400)
       .json({ success: false, error: "Account ID required" });
-  initWA(accountId);
+  initializeWhatsAppClient(accountId);
   res.json({ success: true, message: `Account ${accountId} activated` });
 });
 
