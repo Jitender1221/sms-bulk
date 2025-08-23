@@ -20,6 +20,8 @@
   "dependencies": {
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
+    "uuid": "^11.1.0",
+"multer": "^2.0.2",
         "axios": "^1.11.0",
     "mime-types": "^3.0.1",
     "dotnet": "^1.1.4",
