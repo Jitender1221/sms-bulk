@@ -1,3 +1,1417 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
 
-</script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCI WhatsApp Web</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+    body {
+        background-color: #0F1221;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding-top: 56px;
+        /* To account for fixed navbar */
+    }
+
+    /* Navbar styles */
+    .navbar {
+        background-color: #128C7E;
+        padding: 0.5rem 1rem;
+    }
+
+    .navbar-brand {
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+    }
+
+    .navbar-brand i {
+        margin-right: 8px;
+    }
+
+    .sidebar {
+        background-color: #128C7E;
+        color: white;
+        height: calc(100vh - 56px);
+        position: fixed;
+        width: 250px;
+        overflow-y: auto;
+        transition: all 0.3s;
+        z-index: 1000;
+    }
+
+    .main-content {
+        margin-left: 250px;
+        padding: 20px;
+        transition: all 0.3s;
+    }
+
+    .nav-link {
+        color: white;
+        margin-bottom: 5px;
+        border-radius: 5px;
+        padding: 10px 15px;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .nav-link i {
+        margin-right: 10px;
+    }
+
+    /* Mobile menu toggle button */
+    .navbar-toggler {
+        border: none;
+        padding: 0.25rem 0.5rem;
+    }
+
+    .navbar-toggler:focus {
+        box-shadow: none;
+    }
+
+    .navbar-toggler-icon {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 992px) {
+        .sidebar {
+            transform: translateX(-100%);
+        }
+
+        .sidebar.show {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+        }
+
+        body {
+            padding-top: 56px;
+        }
+    }
+
+    /* Rest of your existing styles */
+    .qr-container {
+        text-align: center;
+        padding: 20px;
+        background-color: white;
+        border-radius: 10px;
+        margin-bottom: 20px;
+    }
+
+    .status-card {
+        background-color: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .account-card {
+        background-color: white;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .message-form {
+        background-color: white;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .logo {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 30px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .preview-image {
+        max-width: 100px;
+        max-height: 100px;
+        margin-top: 10px;
+    }
+
+    .event-log {
+        height: 200px;
+        overflow-y: auto;
+        background-color: #000000;
+        padding: 10px;
+        border-radius: 5px;
+        font-family: monospace;
+        font-size: 14px;
+        color: green;
+    }
+
+    #qrCode img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .template-variable {
+        background-color: #e9f7fe;
+        color: #0d6efd;
+        padding: 2px 5px;
+        border-radius: 3px;
+        font-family: monospace;
+        margin: 0 2px;
+    }
+
+    .template-preview {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+        margin-top: 10px;
+    }
+
+    .progress-container {
+        margin-top: 20px;
+    }
+
+    .progress {
+        height: 25px;
+    }
+
+    .bulk-preview {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-top: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+    }
+
+    .preview-item {
+        padding: 5px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .preview-item:last-child {
+        border-bottom: none;
+    }
+
+    .spinner-border {
+        width: 5rem;
+        height: 5rem;
+        margin: 20px auto;
+        display: block;
+    }
+
+    hr {
+        border: 1px solid #eee;
+    }
+
+    .text-danger {
+        color: #dc3545;
+        font-size: 0.875em;
+    }
+
+    /* Smaller screens */
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 15px;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+        }
+
+        .qr-container,
+        .status-card,
+        .account-card {
+            margin-bottom: 15px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .message-form {
+            padding: 15px;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .btn-group .btn {
+            flex: 1 0 auto;
+        }
+    }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-whatsapp"></i>
+                <span class="d-none d-sm-inline">GCI</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 d-lg-none">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#dashboard" data-bs-toggle="tab">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#single-message" data-bs-toggle="tab">
+                            <i class="bi bi-send"></i> Single Message
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#bulk-message" data-bs-toggle="tab">
+                            <i class="bi bi-send-check"></i> Bulk Message
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#templates" data-bs-toggle="tab">
+                            <i class="bi bi-file-earmark-text"></i> Templates
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#accounts" data-bs-toggle="tab">
+                            <i class="bi bi-people"></i> Accounts
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#logs" data-bs-toggle="tab">
+                            <i class="bi bi-journal-text"></i> Event Logs
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-white me-3 d-none d-lg-block">Active: <span
+                            id="currentAccountNav">default</span></span>
+                    <button id="mobileLogoutBtn" class="btn btn-danger btn-sm d-lg-none">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar (visible on lg screens and up) -->
+    <div class="sidebar d-none d-lg-block">
+        <div class="logo">
+            <h3>Gurukripa Career Institute</h3>
+            <small><i class="bi bi-whatsapp"></i> WhatsApp Client</small>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#dashboard" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#single-message" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-send"></i> Single Message
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#bulk-message" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-send-check"></i> Bulk Message
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#templates" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-file-earmark-text"></i> Templates
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#accounts" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-people"></i> Accounts
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#logs" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-journal-text"></i> Event Logs
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Mobile Sidebar (hidden by default) -->
+    <div class="sidebar d-lg-none" id="mobileSidebar">
+        <div class="logo">
+            <h3>Gurukripa Career Institute</h3>
+            <small><i class="bi bi-whatsapp"></i> WhatsApp Client</small>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#dashboard" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#single-message" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-send"></i> Single Message
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#bulk-message" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-send-check"></i> Bulk Message
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#templates" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-file-earmark-text"></i> Templates
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#accounts" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-people"></i> Accounts
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#logs" data-bs-toggle="tab" data-bs-dismiss="offcanvas">
+                    <i class="bi bi-journal-text"></i> Event Logs
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <div class="tab-content">
+            <!-- Dashboard Tab -->
+            <div class="tab-pane fade show active" id="dashboard">
+                <h2 class="text-light">Dashboard</h2>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="qr-container">
+                            <h4>QR Code</h4>
+                            <div id="qrCode">Waiting for QR code...</div>
+                            <div id="qrStatus" class="mt-2">Initializing connection...</div>
+                            <div class="progress mt-2" style="height: 5px;">
+                                <div id="qrProgress" class="progress-bar" role="progressbar" style="width: 100%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="status-card">
+                            <h4>Status</h4>
+                            <div id="connectionStatus">Not connected</div>
+                            <div id="activeAccount">Active Account: <span id="currentAccount">default</span>
+                            </div>
+                        </div>
+                        <div class="account-card">
+                            <h4>Account Management</h4>
+                            <div class="mb-3">
+                                <label class="form-label">Switch Account</label>
+                                <select id="accountSelect" class="form-select">
+                                    <option value="default">default</option>
+                                </select>
+                            </div>
+                            <button id="logoutBtn" class="btn btn-danger">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Message Tab -->
+            <div class="tab-pane fade" id="single-message">
+                <h2 class="text-light">Send Single Message</h2>
+                <hr />
+                <div class="message-form">
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label">Phone Number (with country code (91))</label>
+                        <input type="text" class="form-control" id="phoneNumber" placeholder="e.g. 919876543210">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="messageText" class="form-label">Message</label>
+                        <textarea class="form-control" id="messageText" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mediaFile" class="form-label">Media Attachment (optional)</label>
+                        <input type="file" class="form-control" id="mediaFile">
+                        <div id="mediaPreview" class="mt-2"></div>
+                        <div class="form-text">You can attach an image, video, or document</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mediaCaption" class="form-label">Media Caption (optional)</label>
+                        <input type="text" class="form-control" id="mediaCaption" placeholder="Caption for your media">
+                    </div>
+                    <button id="sendMessageBtn" class="btn btn-success">Send Message</button>
+                    <div id="sendStatus" class="mt-2"></div>
+                </div>
+            </div>
+
+            <!-- Bulk Message Tab -->
+            <div class="tab-pane fade" id="bulk-message">
+                <h2 class="text-light">Send Bulk Messages</h2>
+                <hr />
+
+                <div class="message-form">
+                    <div class="mb-3">
+                        <label class="form-label">Message Source</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="messageSource" id="useTemplate"
+                                value="template" checked>
+                            <label class="form-check-label" for="useTemplate">
+                                Use Template
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="messageSource" id="useCustomMessage"
+                                value="custom">
+                            <label class="form-check-label" for="useCustomMessage">
+                                Custom Message
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="templateSection">
+                        <div class="mb-3">
+                            <label for="templateSelect" class="form-label">Select Template</label>
+                            <select class="form-select" id="templateSelect">
+                                <option value="">-- Select a template --</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Template Preview</label>
+                            <div id="templatePreview" class="template-preview"></div>
+                        </div>
+                    </div>
+
+                    <div id="customMessageSection" style="display: none;">
+                        <div class="mb-3">
+                            <label for="bulkMessageText" class="form-label">Message</label>
+                            <textarea class="form-control" id="bulkMessageText" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="phoneNumbers" class="form-label">Phone Numbers (one per line, with country code
+                            (91))
+                        </label>
+                        <textarea class="form-control" id="phoneNumbers" rows="5"
+                            placeholder="919876543210&#10;919876543211&#10;919876543212"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bulkMediaFile" class="form-label">Media Attachment (optional)</label>
+                        <input type="file" class="form-control" id="bulkMediaFile">
+                        <div id="bulkMediaPreview" class="mt-2"></div>
+                        <div class="form-text">You can attach an image, video, or document</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="bulkMediaCaption" class="form-label">Media Caption (optional)</label>
+                        <input type="text" class="form-control" id="bulkMediaCaption"
+                            placeholder="Caption for your media">
+                    </div>
+
+                    <button id="sendBulkBtn" class="btn btn-success">Send Bulk Messages</button>
+                    <div id="bulkStatus" class="mt-2"></div>
+
+                    <div class="progress-container" style="display: none;" id="progressContainer">
+                        <h5>Progress</h5>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" style="width: 0%" id="progressBar">0%</div>
+                        </div>
+                        <div id="progressDetails">Processed: 0/0</div>
+                    </div>
+
+                    <div class="bulk-preview" style="display: none;" id="bulkPreview">
+                        <h5>Message Preview</h5>
+                        <div id="previewContent"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Templates Tab -->
+            <div class="tab-pane fade" id="templates">
+                <h2 class="text-light">Message Templates</h2>
+                <hr />
+
+                <div class="message-form">
+                    <h4>Create New Template</h4>
+                    <div class="mb-3">
+                        <label for="templateName" class="form-label">Template Name</label>
+                        <input type="text" class="form-control" id="templateName" placeholder="Enter template name">
+                    </div>
+                    <div class="mb-3">
+                        <label for="templateContent" class="form-label">Template Content</label>
+                        <textarea class="form-control" id="templateContent" rows="5"
+                            placeholder="Enter your message template here..."></textarea>
+                        <div class="form-text">
+                            Use variables like {{name}}, {{course}}, etc. They will be replaced with actual values when
+                            sending.
+                        </div>
+                    </div>
+                    <button id="saveTemplateBtn" class="btn btn-primary">Save Template</button>
+                    <div id="templateStatus" class="mt-2"></div>
+                </div>
+
+                <hr />
+
+                <h4>Saved Templates</h4>
+                <div id="templatesList" class="mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Accounts Tab -->
+            <div class="tab-pane fade" id="accounts">
+                <h2 class="text-light">Account Management</h2>
+                <hr />
+
+                <div class="message-form">
+                    <h4>Create New Account</h4>
+                    <div class="mb-3">
+                        <label for="newAccountId" class="form-label">Account ID</label>
+                        <input type="text" class="form-control" id="newAccountId" placeholder="Enter account ID">
+                        <div class="form-text">This will be used to identify and switch between different WhatsApp
+                            accounts.</div>
+                    </div>
+                    <button id="createAccountBtn" class="btn btn-primary">Create Account</button>
+                    <div id="accountStatus" class="mt-2"></div>
+                </div>
+
+                <hr />
+
+                <h4>Existing Accounts</h4>
+                <div id="accountsList" class="mt-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Tab -->
+            <div class="tab-pane fade" id="logs">
+                <h2 class="text-light">Event Logs</h2>
+                <hr />
+
+                <div class="message-form">
+                    <h4>Connection Events</h4>
+                    <div class="event-log" id="eventLog">
+                        [System] Event log initialized at: <span id="logTime"></span><br>
+                        [System] Connecting to server...
+                    </div>
+                    <button id="clearLogsBtn" class="btn btn-secondary mt-2">Clear Logs</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize variables
+        let currentAccount = 'default';
+        let eventSource = null;
+        let isConnected = false;
+        let eventLog = document.getElementById('eventLog');
+
+        // Update log time
+        document.getElementById('logTime').textContent = new Date().toLocaleTimeString();
+
+        // Initialize the app
+        initializeApp();
+
+        function initializeApp() {
+            logEvent('[System] Initializing application...');
+            loadTemplates();
+            loadAccounts();
+            setupEventListeners();
+            connectToSSE();
+        }
+
+        function connectToSSE() {
+            // Close existing connection if any
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            logEvent(`[System] Connecting to account: ${currentAccount}`);
+
+            eventSource = new EventSource(`/api/accounts/${currentAccount}/events`);
+
+            eventSource.addEventListener('connected', function(event) {
+                const data = JSON.parse(event.data);
+                logEvent(`[SSE] Connected to server: ${data.message}`);
+            });
+
+            eventSource.addEventListener('qr', function(event) {
+                const data = JSON.parse(event.data);
+                document.getElementById('qrCode').innerHTML = `<img src="${data.qr}" alt="QR Code">`;
+                document.getElementById('qrStatus').textContent = 'Scan the QR code with WhatsApp';
+                document.getElementById('connectionStatus').textContent = 'Waiting for QR scan...';
+                logEvent('[QR] QR code received, please scan with WhatsApp');
+            });
+
+            eventSource.addEventListener('ready', function(event) {
+                const data = JSON.parse(event.data);
+                document.getElementById('connectionStatus').textContent = '✅ Connected and ready';
+                document.getElementById('qrStatus').textContent = 'Connected successfully';
+                document.getElementById('qrCode').innerHTML = '✅ Connected';
+                isConnected = true;
+                logEvent('[Connection] WhatsApp client is ready!');
+            });
+
+            eventSource.addEventListener('connected', function(event) {
+                const data = JSON.parse(event.data);
+                logEvent(`[Connection] ${data.message}`);
+            });
+
+            eventSource.addEventListener('auth_failure', function(event) {
+                const data = JSON.parse(event.data);
+                logEvent(`[Error] Authentication failed: ${data.msg}`);
+            });
+
+            eventSource.addEventListener('disconnected', function(event) {
+                const data = JSON.parse(event.data);
+                document.getElementById('connectionStatus').textContent = '❌ Disconnected';
+                isConnected = false;
+                logEvent(`[Connection] Disconnected: ${data.reason}`);
+            });
+
+            eventSource.addEventListener('error', function(event) {
+                const data = JSON.parse(event.data);
+                logEvent(`[Error] ${data.message}`);
+            });
+
+            eventSource.onerror = function(error) {
+                logEvent('[SSE Error] Connection error, attempting to reconnect...');
+                setTimeout(connectToSSE, 3000);
+            };
+        }
+
+        function setupEventListeners() {
+            // Account selection
+            document.getElementById('accountSelect').addEventListener('change', function(e) {
+                currentAccount = e.target.value;
+                document.getElementById('currentAccount').textContent = currentAccount;
+                document.getElementById('currentAccountNav').textContent = currentAccount;
+                logEvent(`[Account] Switched to: ${currentAccount}`);
+                connectToSSE();
+            });
+
+            // Logout button
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                logoutAccount();
+            });
+
+            document.getElementById('mobileLogoutBtn').addEventListener('click', function() {
+                logoutAccount();
+            });
+
+            // Send message button
+            document.getElementById('sendMessageBtn').addEventListener('click', function() {
+                sendSingleMessage();
+            });
+
+            // Send bulk messages button
+            document.getElementById('sendBulkBtn').addEventListener('click', function() {
+                sendBulkMessages();
+            });
+
+            // Template selection change
+            document.getElementById('templateSelect').addEventListener('change', function() {
+                updateTemplatePreview();
+            });
+
+            // Message source radio buttons
+            document.querySelectorAll('input[name="messageSource"]').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    if (this.value === 'template') {
+                        document.getElementById('templateSection').style.display = 'block';
+                        document.getElementById('customMessageSection').style.display = 'none';
+                    } else {
+                        document.getElementById('templateSection').style.display = 'none';
+                        document.getElementById('customMessageSection').style.display = 'block';
+                    }
+                });
+            });
+
+            // Media file preview
+            document.getElementById('mediaFile').addEventListener('change', function(e) {
+                previewMediaFile(e.target, 'mediaPreview');
+            });
+
+            document.getElementById('bulkMediaFile').addEventListener('change', function(e) {
+                previewMediaFile(e.target, 'bulkMediaPreview');
+            });
+
+            // Save template button
+            document.getElementById('saveTemplateBtn').addEventListener('click', function() {
+                saveTemplate();
+            });
+
+            // Create account button
+            document.getElementById('createAccountBtn').addEventListener('click', function() {
+                createAccount();
+            });
+
+            // Clear logs button
+            document.getElementById('clearLogsBtn').addEventListener('click', function() {
+                clearLogs();
+            });
+
+            // Mobile menu toggle (for Bootstrap 5)
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const mobileSidebar = document.getElementById('mobileSidebar');
+
+            if (navbarToggler && mobileSidebar) {
+                navbarToggler.addEventListener('click', function() {
+                    mobileSidebar.classList.toggle('show');
+                });
+            }
+
+            // Close mobile sidebar when clicking outside
+            document.addEventListener('click', function(event) {
+                if (mobileSidebar && mobileSidebar.classList.contains('show') &&
+                    !event.target.closest('#mobileSidebar') &&
+                    !event.target.closest('.navbar-toggler')) {
+                    mobileSidebar.classList.remove('show');
+                }
+            });
+        }
+
+        function logoutAccount() {
+            if (!confirm('Are you sure you want to logout from this account?')) {
+                return;
+            }
+
+            fetch('/api/accounts/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountId: currentAccount
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        logEvent(`[Account] Logged out: ${currentAccount}`);
+                        document.getElementById('connectionStatus').textContent = '❌ Logged out';
+                        document.getElementById('qrStatus').textContent =
+                            'Please refresh to get new QR code';
+                        document.getElementById('qrCode').innerHTML = 'Logged out';
+                        isConnected = false;
+
+                        // Refresh QR code
+                        fetch(`/api/accounts/${currentAccount}/refresh`, {
+                            method: 'POST'
+                        }).then(() => {
+                            logEvent('[Account] QR refresh requested');
+                        });
+                    } else {
+                        logEvent(`[Error] Logout failed: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    logEvent(`[Error] Logout error: ${error.message}`);
+                });
+        }
+
+        function sendSingleMessage() {
+            const phone = document.getElementById('phoneNumber').value.trim();
+            let message = document.getElementById('messageText').value.trim();
+            const mediaFile = document.getElementById('mediaFile').files[0];
+            const mediaCaption = document.getElementById('mediaCaption').value.trim();
+
+            if (!phone) {
+                showStatus('Please enter a phone number', 'error');
+                return;
+            }
+
+            if (!message && !mediaFile) {
+                showStatus('Please enter a message or attach media', 'error');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendMessageBtn');
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            showStatus('Sending message...', 'info');
+
+            const formData = new FormData();
+            formData.append('phone', phone);
+            formData.append('message', message);
+            formData.append('accountId', currentAccount);
+            formData.append('mediaCaption', mediaCaption);
+
+            if (mediaFile) {
+                formData.append('media', mediaFile);
+            }
+
+            fetch('/api/send-message', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showStatus('✅ Message sent successfully!', 'success');
+                        logEvent(
+                            `[Message] Sent to ${phone}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`
+                            );
+                    } else {
+                        showStatus(`❌ Failed: ${data.error}`, 'error');
+                        logEvent(`[Error] Failed to send to ${phone}: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    showStatus('❌ Network error', 'error');
+                    logEvent(`[Error] Network error: ${error.message}`);
+                })
+                .finally(() => {
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = originalText;
+                });
+        }
+
+        function sendBulkMessages() {
+            const useTemplate = document.getElementById('useTemplate').checked;
+            const phoneNumbersText = document.getElementById('phoneNumbers').value.trim();
+            const mediaFile = document.getElementById('bulkMediaFile').files[0];
+            const mediaCaption = document.getElementById('bulkMediaCaption').value.trim();
+
+            let message = '';
+            if (useTemplate) {
+                const templateSelect = document.getElementById('templateSelect');
+                if (!templateSelect.value) {
+                    showBulkStatus('Please select a template', 'error');
+                    return;
+                }
+                message = templateSelect.options[templateSelect.selectedIndex].text;
+            } else {
+                message = document.getElementById('bulkMessageText').value.trim();
+                if (!message) {
+                    showBulkStatus('Please enter a message', 'error');
+                    return;
+                }
+            }
+
+            if (!phoneNumbersText) {
+                showBulkStatus('Please enter phone numbers', 'error');
+                return;
+            }
+
+            const phoneNumbers = phoneNumbersText.split('\n')
+                .map(num => num.trim())
+                .filter(num => num.length > 0);
+
+            if (phoneNumbers.length === 0) {
+                showBulkStatus('No valid phone numbers found', 'error');
+                return;
+            }
+
+            // Show progress
+            document.getElementById('progressContainer').style.display = 'block';
+            const progressBar = document.getElementById('progressBar');
+            const progressDetails = document.getElementById('progressDetails');
+
+            const sendBtn = document.getElementById('sendBulkBtn');
+            const originalText = sendBtn.textContent;
+            sendBtn.disabled = true;
+            showBulkStatus(`Sending ${phoneNumbers.length} messages...`, 'info');
+
+            let processed = 0;
+            let successful = 0;
+            let failed = 0;
+
+            // Process each phone number
+            phoneNumbers.forEach((phone, index) => {
+                setTimeout(() => {
+                    const formData = new FormData();
+                    formData.append('phone', phone);
+                    formData.append('message', message);
+                    formData.append('accountId', currentAccount);
+                    formData.append('mediaCaption', mediaCaption);
+
+                    if (mediaFile) {
+                        formData.append('media', mediaFile);
+                    }
+
+                    fetch('/api/send-message', {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            processed++;
+                            if (data.success) {
+                                successful++;
+                                logEvent(`[Bulk] Sent to ${phone}: Success`);
+                            } else {
+                                failed++;
+                                logEvent(
+                                `[Bulk] Failed to send to ${phone}: ${data.error}`);
+                            }
+
+                            // Update progress
+                            const progress = (processed / phoneNumbers.length) * 100;
+                            progressBar.style.width = `${progress}%`;
+                            progressBar.textContent = `${Math.round(progress)}%`;
+                            progressDetails.textContent =
+                                `Processed: ${processed}/${phoneNumbers.length} | Successful: ${successful} | Failed: ${failed}`;
+
+                            // If all processed
+                            if (processed === phoneNumbers.length) {
+                                sendBtn.disabled = false;
+                                sendBtn.textContent = originalText;
+                                showBulkStatus(
+                                    `✅ Completed: ${successful} successful, ${failed} failed`,
+                                    'success');
+                            }
+                        })
+                        .catch(error => {
+                            processed++;
+                            failed++;
+                            logEvent(`[Bulk] Error sending to ${phone}: ${error.message}`);
+
+                            const progress = (processed / phoneNumbers.length) * 100;
+                            progressBar.style.width = `${progress}%`;
+                            progressBar.textContent = `${Math.round(progress)}%`;
+                            progressDetails.textContent =
+                                `Processed: ${processed}/${phoneNumbers.length} | Successful: ${successful} | Failed: ${failed}`;
+
+                            if (processed === phoneNumbers.length) {
+                                sendBtn.disabled = false;
+                                sendBtn.textContent = originalText;
+                                showBulkStatus(
+                                    `✅ Completed: ${successful} successful, ${failed} failed`,
+                                    'success');
+                            }
+                        });
+                }, index * 1000); // 1 second delay between messages to avoid rate limiting
+            });
+        }
+
+        function loadTemplates() {
+            fetch('/api/templates')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const templatesList = document.getElementById('templatesList');
+                        const templateSelect = document.getElementById('templateSelect');
+
+                        if (data.templates.length === 0) {
+                            templatesList.innerHTML =
+                                '<p>No templates found. Create your first template above.</p>';
+                            templateSelect.innerHTML =
+                                '<option value="">-- No templates available --</option>';
+                            return;
+                        }
+
+                        // Update template select dropdown
+                        templateSelect.innerHTML = '<option value="">-- Select a template --</option>';
+                        data.templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template._id;
+                            option.textContent = template.name;
+                            templateSelect.appendChild(option);
+                        });
+
+                        // Update templates list
+                        templatesList.innerHTML = data.templates.map(template => `
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${template.name}</h5>
+                                        <p class="card-text">${template.content}</p>
+                                        <small class="text-muted">Created: ${new Date(template.createdAt).toLocaleDateString()}</small>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary use-template" data-id="${template._id}">Use</button>
+                                            <button class="btn btn-sm btn-outline-secondary edit-template" data-id="${template._id}">Edit</button>
+                                            <button class="btn btn-sm btn-outline-danger delete-template" data-id="${template._id}">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+
+                        // Add event listeners to template buttons
+                        document.querySelectorAll('.use-template').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const templateId = this.getAttribute('data-id');
+                                const template = data.templates.find(t => t._id ===
+                                    templateId);
+                                if (template) {
+                                    // Switch to bulk message tab and select this template
+                                    const tab = new bootstrap.Tab(document.querySelector(
+                                        'a[href="#bulk-message"]'));
+                                    tab.show();
+                                    document.getElementById('useTemplate').checked = true;
+                                    document.getElementById('templateSection').style
+                                        .display = 'block';
+                                    document.getElementById('customMessageSection').style
+                                        .display = 'none';
+                                    document.getElementById('templateSelect').value =
+                                        templateId;
+                                    updateTemplatePreview();
+                                }
+                            });
+                        });
+
+                        document.querySelectorAll('.edit-template').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const templateId = this.getAttribute('data-id');
+                                const template = data.templates.find(t => t._id ===
+                                    templateId);
+                                if (template) {
+                                    document.getElementById('templateName').value = template
+                                        .name;
+                                    document.getElementById('templateContent').value =
+                                        template.content;
+                                    // You might want to add an update mechanism here
+                                }
+                            });
+                        });
+
+                        document.querySelectorAll('.delete-template').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const templateId = this.getAttribute('data-id');
+                                if (confirm(
+                                        'Are you sure you want to delete this template?')) {
+                                    deleteTemplate(templateId);
+                                }
+                            });
+                        });
+
+                    } else {
+                        document.getElementById('templatesList').innerHTML =
+                            `<p class="text-danger">Error loading templates: ${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('templatesList').innerHTML =
+                        `<p class="text-danger">Network error: ${error.message}</p>`;
+                });
+        }
+
+        function loadAccounts() {
+            fetch('/api/accounts')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const accountsList = document.getElementById('accountsList');
+                        const accountSelect = document.getElementById('accountSelect');
+
+                        // Update account select dropdown
+                        accountSelect.innerHTML = '';
+                        data.accounts.forEach(account => {
+                            const option = document.createElement('option');
+                            option.value = account.accountId;
+                            option.textContent = account.accountId;
+                            if (account.accountId === currentAccount) {
+                                option.selected = true;
+                            }
+                            accountSelect.appendChild(option);
+                        });
+
+                        // Update accounts list
+                        if (data.accounts.length === 0) {
+                            accountsList.innerHTML =
+                                '<p>No accounts found. Create your first account above.</p>';
+                            return;
+                        }
+
+                        accountsList.innerHTML = data.accounts.map(account => `
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">${account.accountId}</h5>
+                                        <p class="card-text">
+                                            Status: <span class="badge ${getStatusBadge(account.status)}">${account.status}</span><br>
+                                            Last Activity: ${new Date(account.lastActivity).toLocaleString()}<br>
+                                            Created: ${new Date(account.createdAt).toLocaleDateString()}
+                                        </p>
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-primary switch-account" data-id="${account.accountId}">Switch</button>
+                                            <button class="btn btn-sm btn-outline-danger logout-account" data-id="${account.accountId}">Logout</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('');
+
+                        // Add event listeners to account buttons
+                        document.querySelectorAll('.switch-account').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const accountId = this.getAttribute('data-id');
+                                currentAccount = accountId;
+                                document.getElementById('currentAccount').textContent =
+                                    currentAccount;
+                                document.getElementById('currentAccountNav').textContent =
+                                    currentAccount;
+                                document.getElementById('accountSelect').value =
+                                    currentAccount;
+                                logEvent(`[Account] Switched to: ${currentAccount}`);
+                                connectToSSE();
+                            });
+                        });
+
+                        document.querySelectorAll('.logout-account').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const accountId = this.getAttribute('data-id');
+                                if (confirm(
+                                        `Are you sure you want to logout from ${accountId}?`
+                                        )) {
+                                    fetch('/api/accounts/logout', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                accountId
+                                            })
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                logEvent(
+                                                    `[Account] Logged out: ${accountId}`
+                                                    );
+                                                loadAccounts(); // Refresh the list
+                                            } else {
+                                                logEvent(
+                                                    `[Error] Logout failed: ${data.error}`
+                                                    );
+                                            }
+                                        })
+                                        .catch(error => {
+                                            logEvent(
+                                                `[Error] Logout error: ${error.message}`
+                                                );
+                                        });
+                                }
+                            });
+                        });
+
+                    } else {
+                        document.getElementById('accountsList').innerHTML =
+                            `<p class="text-danger">Error loading accounts: ${data.error}</p>`;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById('accountsList').innerHTML =
+                        `<p class="text-danger">Network error: ${error.message}</p>`;
+                });
+        }
+
+        function getStatusBadge(status) {
+            switch (status) {
+                case 'ready':
+                    return 'bg-success';
+                case 'authenticated':
+                    return 'bg-primary';
+                case 'initialized':
+                    return 'bg-secondary';
+                case 'disconnected':
+                    return 'bg-danger';
+                default:
+                    return 'bg-secondary';
+            }
+        }
+
+        function saveTemplate() {
+            const name = document.getElementById('templateName').value.trim();
+            const content = document.getElementById('templateContent').value.trim();
+
+            if (!name || !content) {
+                showTemplateStatus('Please fill in all fields', 'error');
+                return;
+            }
+
+            fetch('/api/templates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name,
+                        content
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showTemplateStatus('✅ Template saved successfully!', 'success');
+                        document.getElementById('templateName').value = '';
+                        document.getElementById('templateContent').value = '';
+                        loadTemplates();
+                    } else {
+                        showTemplateStatus(`❌ Failed: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showTemplateStatus('❌ Network error', 'error');
+                });
+        }
+
+        function createAccount() {
+            const accountId = document.getElementById('newAccountId').value.trim();
+
+            if (!accountId) {
+                showAccountStatus('Please enter an account ID', 'error');
+                return;
+            }
+
+            fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showAccountStatus('✅ Account created successfully!', 'success');
+                        document.getElementById('newAccountId').value = '';
+                        loadAccounts();
+                    } else {
+                        showAccountStatus(`❌ Failed: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showAccountStatus('❌ Network error', 'error');
+                });
+        }
+
+        function deleteTemplate(templateId) {
+            fetch(`/api/templates/${templateId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showTemplateStatus('✅ Template deleted successfully!', 'success');
+                        loadTemplates();
+                    } else {
+                        showTemplateStatus(`❌ Failed: ${data.error}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showTemplateStatus('❌ Network error', 'error');
+                });
+        }
+
+        function updateTemplatePreview() {
+            const templateSelect = document.getElementById('templateSelect');
+            const templateId = templateSelect.value;
+            const templateText = templateSelect.options[templateSelect.selectedIndex]?.text || '';
+
+            if (templateId) {
+                document.getElementById('templatePreview').innerHTML = `
+                        <strong>Preview:</strong><br>
+                        ${templateText.replace(/\{\{(\w+)\}\}/g, '<span class="template-variable">{{$1}}</span>')}
+                    `;
+            } else {
+                document.getElementById('templatePreview').innerHTML = 'Select a template to see preview';
+            }
+        }
+
+        function previewMediaFile(input, previewId) {
+            const file = input.files[0];
+            const preview = document.getElementById(previewId);
+
+            if (file) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        preview.innerHTML =
+                            `<img src="${e.target.result}" class="preview-image" alt="Preview">`;
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    preview.innerHTML =
+                        `<div class="text-info"><i class="bi bi-file-earmark"></i> ${file.name} (${(file.size / 1024).toFixed(1)}KB)</div>`;
+                }
+            } else {
+                preview.innerHTML = '';
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('sendStatus');
+            statusDiv.innerHTML =
+                `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function showBulkStatus(message, type) {
+            const statusDiv = document.getElementById('bulkStatus');
+            statusDiv.innerHTML =
+                `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+        }
+
+        function showTemplateStatus(message, type) {
+            const statusDiv = document.getElementById('templateStatus');
+            statusDiv.innerHTML =
+                `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function showAccountStatus(message, type) {
+            const statusDiv = document.getElementById('accountStatus');
+            statusDiv.innerHTML =
+                `<div class="alert alert-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'info'}">${message}</div>`;
+            setTimeout(() => {
+                statusDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function logEvent(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            eventLog.innerHTML += `[${timestamp}] ${message}<br>`;
+            eventLog.scrollTop = eventLog.scrollHeight;
+        }
+
+        function clearLogs() {
+            eventLog.innerHTML = '[System] Logs cleared at: ' + new Date().toLocaleTimeString() + '<br>';
+        }
+
+        // Initialize template preview
+        updateTemplatePreview();
+
+        // Check server health on startup
+        fetch('/api/health')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    logEvent('[System] Server is running');
+                } else {
+                    logEvent('[System] Server health check failed');
+                }
+            })
+            .catch(error => {
+                logEvent('[System] Cannot connect to server: ' + error.message);
+            });
+    });
+    </script>
+</body>
+
+</html>
