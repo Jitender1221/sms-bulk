@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
-    "setup": "npm ci && npx puppeteer install "
+    "setup": "npm i && npm install puppeteer && npm install puppeteer-core"
   },
   "keywords": [],
   "author": "GCI",
