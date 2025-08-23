@@ -90,12 +90,31 @@ function initClient(accountId) {
 
   const client = new Client({
     authStrategy : new LocalAuth({ clientId: accountId }),
-    puppeteer: {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage',
-             '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote',
-             '--disable-gpu', '--single-process'],
-    },
+    // 1️⃣  Inside `initializeWhatsAppClient` (or `initClient`) change the
+//     `puppeteer` options to speed up headless launch:
+
+puppeteer: {
+  headless: true,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-accelerated-2d-canvas",
+    "--no-first-run",
+    "--no-zygote",
+    "--disable-gpu",
+    "--single-process",
+    "--disable-web-security",        // ⚡️ NEW
+    "--disable-features=TranslateUI",// ⚡️ NEW
+    "--disable-extensions",          // ⚡️ NEW
+    "--disable-default-apps",        // ⚡️ NEW
+  ],
+},
+
+
+
+
+
     webVersionCache: {
       type: 'remote',
       remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
@@ -130,9 +149,9 @@ function initClient(accountId) {
   });
 
   client.initialize().catch(err => {
-    console.error(`Client ${accountId} init error:`, err);
-    broadcastEvent(accountId, 'error', { message: err.message });
-  });
+  console.error(`Client ${accountId} init error:`, err);
+  broadcastEvent(accountId, 'error', { message: err.message });
+});
 
   whatsappClients[accountId] = client;
   return client;
