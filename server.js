@@ -105,7 +105,6 @@ function initializeWhatsAppClient(accountId) {
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
       headless: true,
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
