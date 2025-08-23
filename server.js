@@ -4,7 +4,6 @@ const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
 const cors = require("cors");
@@ -45,25 +44,6 @@ const messageSchema = new mongoose.Schema({
 const Account = mongoose.model("Account", accountSchema);
 const Template = mongoose.model("Template", templateSchema);
 const Message = mongoose.model("Message", messageSchema);
-
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-});
 
 // Middleware
 app.use(
@@ -143,10 +123,11 @@ function initializeWhatsAppClient(accountId) {
 
   console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
+  // Use the default Chromium that comes with puppeteer
+  // This is the most reliable approach
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
-      executablePath: "/usr/bin/chromium",
       headless: true,
       args: [
         "--no-sandbox",
@@ -156,6 +137,7 @@ function initializeWhatsAppClient(accountId) {
         "--no-first-run",
         "--no-zygote",
         "--disable-gpu",
+        "--single-process",
       ],
     },
     webVersionCache: {

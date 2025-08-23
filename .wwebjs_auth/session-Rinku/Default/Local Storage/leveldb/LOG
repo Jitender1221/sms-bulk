@@ -1,0 +1,4 @@
+2025/08/23-11:27:44.569 a0c Creating DB C:\wamp64\www\wht\sms-bulk\.wwebjs_auth\session-Rinku\Default\Local Storage\leveldb since it was missing.
+2025/08/23-11:27:44.581 a0c Reusing MANIFEST C:\wamp64\www\wht\sms-bulk\.wwebjs_auth\session-Rinku\Default\Local Storage\leveldb/MANIFEST-000001
+2025/08/23-11:27:44.582 a0c Recovering log #3
+2025/08/23-11:27:44.584 a0c Reusing old log C:\wamp64\www\wht\sms-bulk\.wwebjs_auth\session-Rinku\Default\Local Storage\leveldb/000003.log 

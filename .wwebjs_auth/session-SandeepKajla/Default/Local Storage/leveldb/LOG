@@ -1,0 +1,4 @@
+2025/08/23-11:29:19.104 b48 Creating DB C:\wamp64\www\wht\sms-bulk\.wwebjs_auth\session-SandeepKajla\Default\Local Storage\leveldb since it was missing.
+2025/08/23-11:29:19.129 b48 Reusing MANIFEST C:\wamp64\www\wht\sms-bulk\.wwebjs_auth\session-SandeepKajla\Default\Local Storage\leveldb/MANIFEST-000001
+2025/08/23-11:29:19.132 b48 Recovering log #3
+2025/08/23-11:29:19.135 b48 Reusing old log C:\wamp64\www\wht\sms-bulk\.wwebjs_auth\session-SandeepKajla\Default\Local Storage\leveldb/000003.log 
