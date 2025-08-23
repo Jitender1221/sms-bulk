@@ -6,8 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "npm ci && npx puppeteer install",
-    "setup": "npm ci && npx puppeteer install && mkdir -p sessions uploads data",
+    "setup": "npm install && mkdir -p sessions uploads data",
     "test": "echo \"No tests specified\" && exit 0"
   },
   "keywords": [

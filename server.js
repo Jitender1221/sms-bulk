@@ -143,27 +143,29 @@ function initializeWhatsAppClient(accountId) {
 
   console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
-  const client = new Client({
-    authStrategy: new LocalAuth({ clientId: accountId }),
-    puppeteer: {
-      executablePath: "/usr/bin/chromium",
-      headless: true,
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-accelerated-2d-canvas",
-        "--no-first-run",
-        "--no-zygote",
-        "--disable-gpu",
-      ],
-    },
-    webVersionCache: {
-      type: "remote",
-      remotePath:
-        "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
-    },
-  });
+// inside initializeWhatsAppClient / initClient
+const client = new Client({
+  authStrategy: new LocalAuth({ clientId }),
+  puppeteer: {
+    headless: true,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined, // fallback to bundled
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--disable-gpu",
+      "--single-process"
+    ]
+  },
+  webVersionCache: {
+    type: "remote",
+    remotePath:
+      "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html"
+  }
+});
 
   // Set client properties
   client.isReady = false;
