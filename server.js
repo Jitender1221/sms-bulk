@@ -219,7 +219,7 @@ function initializeWhatsAppClient(accountId) {
       { accountId },
       { status: "disconnected", lastActivity: new Date() }
     );
-    
+
     // Clean up
     delete whatsappClients[accountId];
   });
@@ -267,7 +267,7 @@ app.post("/api/accounts", async (req, res) => {
   }
 
   // Validate account ID format
-  if (accountId.includes(' ')) {
+  if (accountId.includes(" ")) {
     return res
       .status(400)
       .json({ success: false, error: "Account ID cannot contain spaces" });
