@@ -140,12 +140,9 @@ function initializeWhatsAppClient(accountId) {
 
   console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
-  const puppeteer = require("puppeteer");
-
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
     puppeteer: {
-      executablePath: "/usr/bin/chromium",
       headless: true,
       args: [
         "--no-sandbox",
@@ -163,8 +160,6 @@ function initializeWhatsAppClient(accountId) {
         "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
     },
   });
-
-  client.initialize();
 
   whatsappClients[accountId] = client;
 
@@ -202,6 +197,17 @@ function initializeWhatsAppClient(accountId) {
       { status: "ready", lastActivity: new Date() },
       { upsert: true, new: true }
     );
+  });
+
+  client.on("auth_failure", (msg) => {
+    console.log(`Authentication failure for ${accountId}:`, msg);
+    broadcastEvent(accountId, "auth_failure", { msg });
+  });
+
+  client.on("disconnected", (reason) => {
+    console.log(`Client ${accountId} disconnected:`, reason);
+    broadcastEvent(accountId, "disconnected", { reason });
+    delete whatsappClients[accountId];
   });
 
   client.initialize().catch((err) => {
