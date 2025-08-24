@@ -113,9 +113,25 @@ function initWA(accountId) {
 
   /* -------- FAST QR generation -------- */
   client.on("qr", async (qr) => {
-    // Generate tiny SVG instead of heavy base64 PNG
-    const svg = await QRCode.toString(qr, { type: "svg", width: 200 });
-    broadcast(accountId, "qr", { qr: svg }); // send SVG string directly
+    console.log(`QR received for ${accountId}`);
+    try {
+      // Generate QR code as data URL for faster display
+      const qrImage = await qrcode.toDataURL(qr, {
+        width: 300,
+        margin: 1,
+        color: {
+          dark: "#000000",
+          light: "#FFFFFF",
+        },
+      });
+
+      broadcastEvent(accountId, "qr", { qr: qrImage });
+    } catch (err) {
+      console.error("Error generating QR code:", err);
+      broadcastEvent(accountId, "error", {
+        message: "Failed to generate QR code",
+      });
+    }
   });
 
   client.on("authenticated", async () => {
