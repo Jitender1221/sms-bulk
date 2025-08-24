@@ -12,11 +12,19 @@ const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const fileUpload = require("express-fileupload");
 
-// Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Database Models
+/* ---------- Mongoose ---------- */
+mongoose.connect(
+  process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/whatsapp_tool",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
+);
+
+// Account Schema
 const accountSchema = new mongoose.Schema({
   accountId: { type: String, required: true, unique: true },
   status: { type: String, default: "initialized" },
@@ -24,6 +32,7 @@ const accountSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Template Schema
 const templateSchema = new mongoose.Schema({
   name: { type: String, required: true },
   content: { type: String, required: true },
@@ -31,41 +40,10 @@ const templateSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now },
 });
 
-const messageSchema = new mongoose.Schema({
-  accountId: { type: String, required: true },
-  phone: { type: String, required: true },
-  message: String,
-  media: Object,
-  status: { type: String, default: "sending" },
-  error: String,
-  messageId: String,
-  createdAt: { type: Date, default: Date.now },
-});
-
 const Account = mongoose.model("Account", accountSchema);
 const Template = mongoose.model("Template", templateSchema);
-const Message = mongoose.model("Message", messageSchema);
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const uploadDir = "uploads/";
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-});
-
-// Middleware
+/* ---------- Express ---------- */
 app.use(
   cors({
     origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -78,14 +56,10 @@ app.use(fileUpload());
 app.use(express.static("public"));
 app.use("/uploads", express.static("uploads"));
 
-// Create required directories
 ["./sessions", "./uploads", "./data", "./.wwebjs_auth"].forEach((dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
-// Session configuration
 app.use(
   session({
     store: new FileStore({ path: "./sessions" }),
@@ -96,52 +70,32 @@ app.use(
   })
 );
 
-// Initialize WhatsApp clients and SSE clients
+/* ---------- WhatsApp ---------- */
 const whatsappClients = {};
 const sseClients = {};
 
-// Connect to MongoDB
-mongoose
-  .connect(
-    process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/whatsapp_tool",
-    {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
-    }
-  )
-  .then(() => console.log("✅ MongoDB connected successfully"))
-  .catch((err) => {
-    console.error("❌ MongoDB connection error:", err);
-    process.exit(1);
-  });
-
-// Broadcast event to all SSE clients for an account
-function broadcastEvent(accountId, type, data) {
+function broadcast(accountId, type, data) {
   if (!sseClients[accountId]) return;
-
-  sseClients[accountId].forEach((client) => {
+  sseClients[accountId].forEach((c) => {
     try {
-      client.res.write(`event: ${type}\n`);
-      client.res.write(`data: ${JSON.stringify(data)}\n\n`);
-    } catch (err) {
-      console.error("Error sending SSE:", err);
+      c.res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`);
+    } catch {
       sseClients[accountId] = sseClients[accountId].filter(
-        (c) => c.id !== client.id
+        (x) => x.id !== c.id
       );
     }
   });
 }
 
 function initializeWhatsAppClient(accountId) {
-  // Check if client already exists and is connected
-  if (whatsappClients[accountId] && whatsappClients[accountId].isReady) {
-    console.log(`Client ${accountId} is already connected`);
-    broadcastEvent(accountId, "ready", { message: "✅ Already connected" });
+  if (whatsappClients[accountId]) {
+    if (whatsappClients[accountId].isReady) {
+      broadcast(accountId, "ready", { message: "✅ Already connected" });
+      return whatsappClients[accountId];
+    }
+    // Already starting – avoid duplicate
     return whatsappClients[accountId];
   }
-
-  console.log(`Initializing WhatsApp client for account: ${accountId}`);
 
   const client = new Client({
     authStrategy: new LocalAuth({ clientId: accountId }),
@@ -164,68 +118,48 @@ function initializeWhatsAppClient(accountId) {
     },
   });
 
-  // Set client properties
   client.isReady = false;
   client.accountId = accountId;
-
   whatsappClients[accountId] = client;
 
-  // Check if session already exists
-  const authDir = path.join(__dirname, ".wwebjs_auth", `session-${accountId}`);
-  if (fs.existsSync(authDir)) {
-    console.log(`Session found for ${accountId}, connecting quickly...`);
-    broadcastEvent(accountId, "connected", {
-      message: "Session found, connecting quickly...",
-    });
-  } else {
-    console.log(`No session found for ${accountId}, will generate QR code`);
-  }
-
   client.on("qr", async (qr) => {
-    console.log(`QR received for ${accountId}`);
     const qrImage = await qrcode.toDataURL(qr);
-    broadcastEvent(accountId, "qr", { qr: qrImage });
+    broadcast(accountId, "qr", { qr: qrImage });
   });
 
   client.on("authenticated", async () => {
-    console.log(`Client ${accountId} authenticated`);
-    broadcastEvent(accountId, "authenticated", {
+    broadcast(accountId, "authenticated", {
       message: "Authenticated, please wait...",
     });
     await Account.findOneAndUpdate(
       { accountId },
       { status: "authenticated", lastActivity: new Date() },
-      { upsert: true, new: true }
+      { upsert: true }
     );
   });
 
   client.on("ready", async () => {
-    console.log(`Client ${accountId} is ready!`);
     client.isReady = true;
-    broadcastEvent(accountId, "ready", { message: "✅ Connected and ready" });
+    broadcast(accountId, "ready", { message: "✅ Connected and ready" });
     await Account.findOneAndUpdate(
       { accountId },
       { status: "ready", lastActivity: new Date() },
-      { upsert: true, new: true }
+      { upsert: true }
     );
   });
 
   client.on("disconnected", async (reason) => {
-    console.log(`Client ${accountId} disconnected: ${reason}`);
     client.isReady = false;
-    broadcastEvent(accountId, "disconnected", { reason });
+    broadcast(accountId, "disconnected", { reason });
     await Account.findOneAndUpdate(
       { accountId },
       { status: "disconnected", lastActivity: new Date() }
     );
-
-    // Clean up
     delete whatsappClients[accountId];
   });
 
   client.on("auth_failure", async (msg) => {
-    console.log(`Authentication failure for ${accountId}: ${msg}`);
-    broadcastEvent(accountId, "auth_failure", { msg });
+    broadcast(accountId, "auth_failure", { msg });
     await Account.findOneAndUpdate(
       { accountId },
       { status: "auth_failure", lastActivity: new Date() }
@@ -233,20 +167,19 @@ function initializeWhatsAppClient(accountId) {
   });
 
   client.initialize().catch((err) => {
-    console.error(`Failed to initialize client for ${accountId}:`, err);
-    broadcastEvent(accountId, "error", { message: err.message });
+    console.error(`Failed to initialize ${accountId}:`, err);
+    broadcast(accountId, "error", { message: err.message });
   });
 
   return client;
 }
 
-// Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({ success: true, message: "Server is running" });
-});
+/* ---------- Routes ---------- */
+app.get("/api/health", (_req, res) =>
+  res.json({ success: true, message: "Server is running" })
+);
 
-// Get all accounts
-app.get("/api/accounts", async (req, res) => {
+app.get("/api/accounts", async (_req, res) => {
   try {
     const accounts = await Account.find().sort({ createdAt: -1 });
     res.json({ success: true, accounts });
@@ -255,71 +188,50 @@ app.get("/api/accounts", async (req, res) => {
   }
 });
 
-// Create new account
 app.post("/api/accounts", async (req, res) => {
   const { accountId } = req.body;
-
-  if (!accountId) {
+  if (!accountId)
     return res
       .status(400)
-      .json({ success: false, error: "Account ID is required" });
-  }
-
-  // Validate account ID format
-  if (accountId.includes(" ")) {
-    return res
-      .status(400)
-      .json({ success: false, error: "Account ID cannot contain spaces" });
-  }
+      .json({ success: false, error: "Account ID required" });
+  if (/\s/.test(accountId))
+    return res.status(400).json({ success: false, error: "No spaces allowed" });
 
   try {
-    const existingAccount = await Account.findOne({ accountId });
-    if (existingAccount) {
+    if (await Account.findOne({ accountId }))
       return res
         .status(400)
         .json({ success: false, error: "Account already exists" });
-    }
 
-    const newAccount = new Account({ accountId });
-    await newAccount.save();
-
+    await new Account({ accountId }).save();
     initializeWhatsAppClient(accountId);
-
-    res.json({
-      success: true,
-      message: `Account ${accountId} initialized`,
-      account: newAccount,
-    });
+    res.json({ success: true, message: `Account ${accountId} initialized` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// Activate account
 app.post("/api/accounts/activate", (req, res) => {
   const { accountId } = req.body;
   if (!accountId)
     return res
       .status(400)
-      .json({ success: false, error: "Account ID is required" });
-
+      .json({ success: false, error: "Account ID required" });
   initializeWhatsAppClient(accountId);
   res.json({ success: true, message: `Account ${accountId} activated` });
 });
 
-// Logout account
 app.post("/api/accounts/logout", async (req, res) => {
   const { accountId } = req.body;
   if (!accountId)
     return res
       .status(400)
-      .json({ success: false, error: "Account ID is required" });
+      .json({ success: false, error: "Account ID required" });
 
   if (whatsappClients[accountId]) {
     try {
       await whatsappClients[accountId].destroy();
       delete whatsappClients[accountId];
-
       const authDir = path.join(
         __dirname,
         ".wwebjs_auth",
@@ -327,12 +239,10 @@ app.post("/api/accounts/logout", async (req, res) => {
       );
       if (fs.existsSync(authDir))
         fs.rmSync(authDir, { recursive: true, force: true });
-
       await Account.findOneAndUpdate(
         { accountId },
         { status: "disconnected", lastActivity: new Date() }
       );
-
       res.json({ success: true, message: `Account ${accountId} logged out` });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
