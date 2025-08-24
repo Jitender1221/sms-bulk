@@ -4,7 +4,6 @@ const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 const path = require("path");
 const fs = require("fs");
-const multer = require("multer");
 const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode");
 const cors = require("cors");
@@ -73,6 +72,7 @@ app.use(
 /* ---------- WhatsApp ---------- */
 const whatsappClients = {};
 const sseClients = {};
+const qrCache = new Map(); // Cache for QR codes
 
 function broadcast(accountId, type, data) {
   if (!sseClients[accountId]) return;
@@ -88,17 +88,26 @@ function broadcast(accountId, type, data) {
 }
 
 function initializeWhatsAppClient(accountId) {
-  if (whatsappClients[accountId]) {
-    if (whatsappClients[accountId].isReady) {
-      broadcast(accountId, "ready", { message: "✅ Already connected" });
-      return whatsappClients[accountId];
-    }
-    // Already starting – avoid duplicate
+  // Return existing client if already initialized and ready
+  if (whatsappClients[accountId] && whatsappClients[accountId].isReady) {
+    broadcast(accountId, "ready", { message: "✅ Already connected" });
     return whatsappClients[accountId];
   }
 
+  // Return existing client if already initializing
+  if (whatsappClients[accountId] && whatsappClients[accountId].isInitializing) {
+    return whatsappClients[accountId];
+  }
+
+  // Check if we have a cached session to speed up connection
+  const authPath = path.join(__dirname, ".wwebjs_auth", `session-${accountId}`);
+  const hasCachedSession = fs.existsSync(authPath);
+
   const client = new Client({
-    authStrategy: new LocalAuth({ clientId: accountId }),
+    authStrategy: new LocalAuth({
+      clientId: accountId,
+      dataPath: `./.wwebjs_auth/session-${accountId}`,
+    }),
     puppeteer: {
       headless: true,
       args: [
@@ -109,6 +118,7 @@ function initializeWhatsAppClient(accountId) {
         "--no-first-run",
         "--no-zygote",
         "--disable-gpu",
+        "--single-process", // Improves performance
       ],
     },
     webVersionCache: {
@@ -116,15 +126,46 @@ function initializeWhatsAppClient(accountId) {
       remotePath:
         "https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html",
     },
+    takeoverOnConflict: true, // Take over existing session
+    restartOnAuthFail: true, // Restart client on auth failure
   });
 
   client.isReady = false;
+  client.isInitializing = true;
   client.accountId = accountId;
   whatsappClients[accountId] = client;
 
+  // Use cached QR code if available and session doesn't exist
+  if (qrCache.has(accountId) && !hasCachedSession) {
+    broadcast(accountId, "qr", { qr: qrCache.get(accountId) });
+  }
+
   client.on("qr", async (qr) => {
-    const qrImage = await qrcode.toDataURL(qr);
+    // Generate QR code with lower complexity for faster rendering
+    const qrImage = await qrcode.toDataURL(qr, {
+      width: 300,
+      margin: 1,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+
+    // Cache the QR code
+    qrCache.set(accountId, qrImage);
+
+    // Set expiration for cache (5 minutes)
+    setTimeout(() => {
+      if (qrCache.has(accountId)) {
+        qrCache.delete(accountId);
+      }
+    }, 5 * 60 * 1000);
+
     broadcast(accountId, "qr", { qr: qrImage });
+  });
+
+  client.on("loading_screen", (percent, message) => {
+    broadcast(accountId, "loading", { percent, message });
   });
 
   client.on("authenticated", async () => {
@@ -136,10 +177,15 @@ function initializeWhatsAppClient(accountId) {
       { status: "authenticated", lastActivity: new Date() },
       { upsert: true }
     );
+    // Clear QR cache after authentication
+    if (qrCache.has(accountId)) {
+      qrCache.delete(accountId);
+    }
   });
 
   client.on("ready", async () => {
     client.isReady = true;
+    client.isInitializing = false;
     broadcast(accountId, "ready", { message: "✅ Connected and ready" });
     await Account.findOneAndUpdate(
       { accountId },
@@ -150,6 +196,7 @@ function initializeWhatsAppClient(accountId) {
 
   client.on("disconnected", async (reason) => {
     client.isReady = false;
+    client.isInitializing = false;
     broadcast(accountId, "disconnected", { reason });
     await Account.findOneAndUpdate(
       { accountId },
@@ -159,6 +206,7 @@ function initializeWhatsAppClient(accountId) {
   });
 
   client.on("auth_failure", async (msg) => {
+    client.isInitializing = false;
     broadcast(accountId, "auth_failure", { msg });
     await Account.findOneAndUpdate(
       { accountId },
@@ -166,10 +214,24 @@ function initializeWhatsAppClient(accountId) {
     );
   });
 
-  client.initialize().catch((err) => {
-    console.error(`Failed to initialize ${accountId}:`, err);
-    broadcast(accountId, "error", { message: err.message });
-  });
+  // Start initialization with timeout
+  const initTimeout = setTimeout(() => {
+    if (!client.isReady && !client.isInitializing) {
+      broadcast(accountId, "error", { message: "Initialization timeout" });
+    }
+  }, 60000); // 60 seconds timeout
+
+  client
+    .initialize()
+    .then(() => {
+      clearTimeout(initTimeout);
+    })
+    .catch((err) => {
+      clearTimeout(initTimeout);
+      client.isInitializing = false;
+      console.error(`Failed to initialize ${accountId}:`, err);
+      broadcast(accountId, "error", { message: err.message });
+    });
 
   return client;
 }
@@ -268,6 +330,15 @@ app.post("/api/accounts/:accountId/refresh", (req, res) => {
       .destroy()
       .then(() => {
         delete whatsappClients[accountId];
+        // Clear any cached session
+        const authDir = path.join(
+          __dirname,
+          ".wwebjs_auth",
+          `session-${accountId}`
+        );
+        if (fs.existsSync(authDir)) {
+          fs.rmSync(authDir, { recursive: true, force: true });
+        }
         initializeWhatsAppClient(accountId);
         res.json({ success: true, message: "QR refresh initiated" });
       })
@@ -275,6 +346,31 @@ app.post("/api/accounts/:accountId/refresh", (req, res) => {
         res.status(500).json({ success: false, error: err.message });
       });
   }
+});
+
+// Get QR code directly (fast endpoint)
+app.get("/api/accounts/:accountId/qr", async (req, res) => {
+  const { accountId } = req.params;
+
+  // Return cached QR if available
+  if (qrCache.has(accountId)) {
+    return res.json({ success: true, qr: qrCache.get(accountId) });
+  }
+
+  // Initialize client if not already
+  if (!whatsappClients[accountId]) {
+    initializeWhatsAppClient(accountId);
+    return res.json({
+      success: true,
+      message: "Client initializing, please wait for QR",
+    });
+  }
+
+  // If client exists but no QR cached yet
+  res.json({
+    success: true,
+    message: "QR not generated yet, please wait",
+  });
 });
 
 // SSE endpoint for account events
