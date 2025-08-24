@@ -347,7 +347,7 @@ app.post("/api/accounts/logout", async (req, res) => {
 });
 
 // Refresh QR code
-app.post("/api/accounts/:accountId/refresh", (req, res) => {
+app.post("/api/accounts/:accountId/refresh-qr", (req, res) => {
   const { accountId } = req.params;
 
   if (!whatsappClients[accountId]) {
